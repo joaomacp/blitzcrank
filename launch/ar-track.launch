@@ -1,0 +1,15 @@
+<launch>
+    <!-- Astra depth camera -->
+    <include file="$(find astra_camera)/launch/astra.launch" />
+
+    <!-- ar_track_alvar: track individual markers, output relative to camera frame -->
+    <include file="$(find ar_track_alvar)/launch/indiv_socrob_alvar.launch">
+        <arg name="output_frame" value="camera_rgb_optical_frame" />
+    </include>
+
+    <!-- Launch robot body urdf -->
+    <include file="$(find mbot_bringup)/ros/launch/components/real_sim_common_components.launch" />
+
+    <!-- Publish static transform from camera to base_link -->
+    <node pkg="tf" type="static_transform_publisher" name="camera_rgb_optical_frame_broadcaster" args="0.2 0 1.05 4.71 0 4.71 base_link camera_rgb_optical_frame 100" />
+</launch>
