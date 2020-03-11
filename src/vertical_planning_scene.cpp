@@ -15,7 +15,7 @@
 
 int main(int argc, char **argv)
 {
-  ros::init (argc, argv, "blitzcrank_planning_scene");
+  ros::init (argc, argv, "vertical_planning_scene");
   ros::AsyncSpinner spinner(1);
   spinner.start();
 
@@ -71,8 +71,8 @@ int main(int argc, char **argv)
 
   /* pose: the same as the camera transform (in kinova base frame) */
   geometry_msgs::Pose camera_pole_pose;
-  camera_pole_pose.position.x = cameraTransform.transform.translation.x;
-  camera_pole_pose.position.y = cameraTransform.transform.translation.y + 0.2;
+  camera_pole_pose.position.x = -cameraTransform.transform.translation.x;
+  camera_pole_pose.position.y = -cameraTransform.transform.translation.y - 0.2;
   camera_pole_pose.position.z = cameraTransform.transform.translation.z;
   camera_pole_pose.orientation.w = 1.0;
 
@@ -80,8 +80,8 @@ int main(int argc, char **argv)
   shape_msgs::SolidPrimitive primitive;
   primitive.type = primitive.BOX;
   primitive.dimensions.resize(3);
-  primitive.dimensions[0] = 0.08;
-  primitive.dimensions[1] = 0.08;
+  primitive.dimensions[0] = 0.18;
+  primitive.dimensions[1] = 0.18;
   primitive.dimensions[2] = 2;
 
   camera_pole_object.object.primitives.push_back(primitive);

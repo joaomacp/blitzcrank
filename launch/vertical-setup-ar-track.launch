@@ -7,6 +7,12 @@
         <arg name="output_frame" value="camera_rgb_optical_frame" />
     </include>
 
+    <!-- Robot base to world transform: change depending on base position -->
+    <!-- <node pkg="tf" type="static_transform_publisher" name="robot_base_broadcaster" args="0 0 0 0 0 3.14 world j2s6s300_link_base 100" /> -->
+
     <!-- Publish static transform from robot base to camera -->
-    <node pkg="tf" type="static_transform_publisher" name="camera_rgb_optical_frame_broadcaster" args="0.3 0.4 0.5 3.14 0 4.1 j2s6s300_link_base camera_rgb_optical_frame 100" />
+    <node pkg="tf" type="static_transform_publisher" name="camera_rgb_optical_frame_broadcaster" args="-0.5 -0.4 0.5 0 0 4.1 j2s6s300_link_base camera_rgb_optical_frame 100" />
+
+    <!-- Add the table and camera pole collision object to planning scene -->
+    <node pkg="blitzcrank" type="vertical_planning_scene" name="vertical_planning_scene" />
 </launch>
