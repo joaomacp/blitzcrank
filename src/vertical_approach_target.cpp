@@ -13,19 +13,35 @@
 #include <moveit_msgs/AttachedCollisionObject.h>
 #include <moveit_msgs/CollisionObject.h>
 
+bool gazebo = false;
+std::string target_frame;
+
 // rosrun kinova_demo fingers_action_client.py j2s6s300 percent 75 75 75
 void move_fingers(int percent_closed) {
-  std::ostringstream command;
-  command << "rosrun kinova_demo fingers_action_client.py j2s6s300 percent " << percent_closed << " " << percent_closed << " "<< percent_closed;
-  system(command.str().c_str());
+  if(!gazebo) {
+    std::ostringstream command;
+    command << "rosrun kinova_demo fingers_action_client.py j2s6s300 percent " << percent_closed << " " << percent_closed << " "<< percent_closed;
+    system(command.str().c_str());
+  }
 }
 
-int main(int argc, char** argv)
-{
-  ros::init(argc, argv, "vertical_approach_marker");
-  ros::NodeHandle node_handle;
+int main(int argc, char** argv) {
+  ros::init(argc, argv, "vertical_approach_target");
+  ros::NodeHandle node_handle("~");
   ros::AsyncSpinner spinner(1);
   spinner.start();
+
+  if(node_handle.hasParam("gazebo")) {
+    node_handle.getParam("gazebo", gazebo);
+  }
+
+  if(node_handle.hasParam("target_frame")) {
+    node_handle.getParam("target_frame", target_frame);
+  } else {
+    ROS_ERROR("'target_frame' param not given");
+    ros::shutdown();
+  }
+  ROS_INFO("Target frame: %s", target_frame.c_str());
 
   static const std::string PLANNING_GROUP = "arm";
 
@@ -57,9 +73,10 @@ int main(int argc, char** argv)
   tf2_ros::Buffer tfBuffer;
   tf2_ros::TransformListener tfListener(tfBuffer);
 
-  geometry_msgs::TransformStamped markerTransform;
+  geometry_msgs::TransformStamped targetTransform;
   try{
-    markerTransform = tfBuffer.lookupTransform("ar_marker_3", "world", ros::Time(0), ros::Duration(2.0));
+    targetTransform = tfBuffer.lookupTransform("world", target_frame, ros::Time(0), ros::Duration(2.0));
+    ROS_INFO("Target transform: X %f | Y %f | Z %f", targetTransform.transform.translation.x, targetTransform.transform.translation.y, targetTransform.transform.translation.z);
   }
   catch (tf2::TransformException &ex) {
     ROS_ERROR("Error getting (world -> AR marker) transform: %s",ex.what());
@@ -69,9 +86,9 @@ int main(int argc, char** argv)
 
   // // world -> end-effector
   // try{
-  //   markerTransform = tfBuffer.lookupTransform("j2s6s300_end_effector", "world", ros::Time(0), ros::Duration(2.0));
-  //   ROS_INFO("TRANSL %f %f %f", markerTransform.transform.translation.x, markerTransform.transform.translation.y, markerTransform.transform.translation.z);
-  //   ROS_INFO("ROT %f %f %f %f", markerTransform.transform.rotation.x, markerTransform.transform.rotation.y, markerTransform.transform.rotation.z, markerTransform.transform.rotation.w);
+  //   targetTransform = tfBuffer.lookupTransform("j2s6s300_end_effector", "world", ros::Time(0), ros::Duration(2.0));
+  //   ROS_INFO("TRANSL %f %f %f", targetTransform.transform.translation.x, targetTransform.transform.translation.y, targetTransform.transform.translation.z);
+  //   ROS_INFO("ROT %f %f %f %f", targetTransform.transform.rotation.x, targetTransform.transform.rotation.y, targetTransform.transform.rotation.z, targetTransform.transform.rotation.w);
   // }
   // catch (tf2::TransformException &ex) {
   //   ROS_ERROR("Error getting (world -> eef) transform: %s",ex.what());
@@ -95,8 +112,8 @@ int main(int argc, char** argv)
   target_pose.orientation.z = 0.0;
   target_pose.orientation.w = 0.0; 
   //0.001745 -0.219008 0.138630
-  target_pose.position.x = markerTransform.transform.translation.x;
-  target_pose.position.y = markerTransform.transform.translation.y - 0.05;
+  target_pose.position.x = targetTransform.transform.translation.x;
+  target_pose.position.y = targetTransform.transform.translation.y - 0.05;
   target_pose.position.z = 0.25;
   move_group.setPoseTarget(target_pose);
 
@@ -122,8 +139,8 @@ int main(int argc, char** argv)
 
   // MOVE DOWN //
 
-  target_pose.position.x = markerTransform.transform.translation.x;
-  target_pose.position.y = markerTransform.transform.translation.y - 0.05;
+  target_pose.position.x = targetTransform.transform.translation.x;
+  target_pose.position.y = targetTransform.transform.translation.y - 0.05;
   target_pose.position.z = 0.117;
   move_group.setPoseTarget(target_pose);
 
@@ -141,8 +158,8 @@ int main(int argc, char** argv)
 
   // MOVE UP //
 
-  target_pose.position.x = markerTransform.transform.translation.x;
-  target_pose.position.y = markerTransform.transform.translation.y - 0.05;
+  target_pose.position.x = targetTransform.transform.translation.x;
+  target_pose.position.y = targetTransform.transform.translation.y - 0.05;
   target_pose.position.z = 0.30;
   move_group.setPoseTarget(target_pose);
 
@@ -156,8 +173,8 @@ int main(int argc, char** argv)
 
   // MOVE DOWN //
 
-  target_pose.position.x = markerTransform.transform.translation.x;
-  target_pose.position.y = markerTransform.transform.translation.y - 0.05;
+  target_pose.position.x = targetTransform.transform.translation.x;
+  target_pose.position.y = targetTransform.transform.translation.y - 0.05;
   target_pose.position.z = 0.121;
   move_group.setPoseTarget(target_pose);
 

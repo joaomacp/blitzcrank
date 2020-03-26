@@ -1,0 +1,9 @@
+<launch>
+    <arg name="gazebo" default="false" />
+
+    <remap from="/joint_states" to="/j2s6s300/joint_states" />
+    <node pkg="blitzcrank" type="vertical_approach_target" name="vertical_approach_target" output="screen">
+        <param name="gazebo" value="$(arg gazebo)" />
+        <param name="target_frame" value="ar_marker_3" />
+    </node>
+</launch>
