@@ -1,0 +1,6 @@
+geometry_msgs/Transform desired_transform
+string parent
+string child
+---
+float64 translation_error
+#float64 rotation_error - ONLY CHECKING TRANSLATION FOR NOW

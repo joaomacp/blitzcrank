@@ -61,7 +61,7 @@ int main(int argc, char **argv)
 
   geometry_msgs::TransformStamped cameraTransform;
   try{
-    cameraTransform = tfBuffer.lookupTransform("camera_rgb_optical_frame", "j2s6s300_link_base", ros::Time(0), ros::Duration(1.0));
+    cameraTransform = tfBuffer.lookupTransform("world", "camera_rgb_optical_frame", ros::Time(0), ros::Duration(1.0));
   }
   catch (tf2::TransformException &ex) {
     ROS_ERROR("Error getting (Kinova base -> Astra camera) transform: %s",ex.what());
@@ -71,8 +71,8 @@ int main(int argc, char **argv)
 
   /* pose: the same as the camera transform (in kinova base frame) */
   geometry_msgs::Pose camera_pole_pose;
-  camera_pole_pose.position.x = -cameraTransform.transform.translation.x;
-  camera_pole_pose.position.y = -cameraTransform.transform.translation.y - 0.2;
+  camera_pole_pose.position.x = cameraTransform.transform.translation.x;
+  camera_pole_pose.position.y = cameraTransform.transform.translation.y;
   camera_pole_pose.position.z = cameraTransform.transform.translation.z;
   camera_pole_pose.orientation.w = 1.0;
 

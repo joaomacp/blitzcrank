@@ -13,6 +13,10 @@
 #include <moveit_msgs/AttachedCollisionObject.h>
 #include <moveit_msgs/CollisionObject.h>
 
+/**
+ * Approach target object, gripper vertical above target
+**/
+
 bool gazebo = false;
 std::string target_frame;
 
@@ -69,7 +73,7 @@ int main(int argc, char** argv) {
   // Start the demo
   // ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-  // Get desired pose: ar-track marker
+  // Get target pose
   tf2_ros::Buffer tfBuffer;
   tf2_ros::TransformListener tfListener(tfBuffer);
 
@@ -79,7 +83,7 @@ int main(int argc, char** argv) {
     ROS_INFO("Target transform: X %f | Y %f | Z %f", targetTransform.transform.translation.x, targetTransform.transform.translation.y, targetTransform.transform.translation.z);
   }
   catch (tf2::TransformException &ex) {
-    ROS_ERROR("Error getting (world -> AR marker) transform: %s",ex.what());
+    ROS_ERROR("Error getting (world -> target) transform: %s",ex.what());
     ros::shutdown();
     return 0;
   }

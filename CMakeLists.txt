@@ -1,9 +1,13 @@
 cmake_minimum_required(VERSION 2.8.3)
 project(blitzcrank)
-add_compile_options(-std=c++11)
+add_definitions(-std=c++11)
 
 find_package(catkin REQUIRED
-  COMPONENTS
+    COMPONENTS
+    roscpp
+    std_msgs
+    geometry_msgs
+    message_generation
     moveit_core
     moveit_ros_planning
     moveit_ros_planning_interface
@@ -14,28 +18,56 @@ find_package(catkin REQUIRED
     tf2_ros
 )
 
-find_package(Boost REQUIRED system filesystem date_time thread)
+add_service_files(
+  FILES
+  SetCameraOffset.srv
+  GetTargetAlignment.srv
+)
+
+generate_messages(DEPENDENCIES std_msgs geometry_msgs)
 
 catkin_package(
   CATKIN_DEPENDS
+    roscpp
+    message_generation
+    tf2
+    tf2_ros
+    std_msgs
+    geometry_msgs
     moveit_core
     moveit_ros_planning_interface
     interactive_markers
 )
-find_package(Eigen REQUIRED)
 
 ###########
 ## Build ##
 ###########
 
-include_directories(SYSTEM ${Boost_INCLUDE_DIR} ${EIGEN_INCLUDE_DIRS})
 include_directories(${catkin_INCLUDE_DIRS})
-link_directories(${catkin_LIBRARY_DIRS})
 
 add_executable(vertical_planning_scene src/vertical_planning_scene.cpp)
-target_link_libraries(vertical_planning_scene ${catkin_LIBRARIES} ${Boost_LIBRARIES})
-install(TARGETS vertical_planning_scene DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 
 add_executable(vertical_approach_target src/vertical_approach_target.cpp)
-target_link_libraries(vertical_approach_target ${catkin_LIBRARIES} ${Boost_LIBRARIES})
+
+add_executable(horizontal_approach_target src/horizontal_approach_target.cpp)
+
+add_executable(gazebo_interface src/gazebo_interface.cpp)
+add_dependencies(gazebo_interface ${PROJECT_NAME}_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
+
+target_link_libraries(vertical_planning_scene ${catkin_LIBRARIES})
+
+target_link_libraries(vertical_approach_target ${catkin_LIBRARIES})
+
+target_link_libraries(horizontal_approach_target ${catkin_LIBRARIES})
+add_dependencies(horizontal_approach_target ${PROJECT_NAME}_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
+
+target_link_libraries(gazebo_interface ${catkin_LIBRARIES})
+
+#############
+## Install ##
+#############
+
+install(TARGETS vertical_planning_scene DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 install(TARGETS vertical_approach_target DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+install(TARGETS horizontal_approach_target DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+install(TARGETS gazebo_interface DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
