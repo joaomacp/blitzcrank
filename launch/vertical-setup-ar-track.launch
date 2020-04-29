@@ -5,9 +5,12 @@
     <include unless="$(arg gazebo)" file="$(find astra_camera)/launch/astra.launch" />
 
     <!-- ar_track_alvar: track individual markers, output relative to camera frame -->
-    <include file="$(find ar_track_alvar)/launch/indiv_socrob_alvar.launch">
+    <!-- <include file="$(find ar_track_alvar)/launch/indiv_socrob_alvar.launch">
         <arg name="output_frame" value="camera_rgb_optical_frame" />
-    </include>
+    </include> -->
+
+    <!-- Instead of above: track bundles -->
+    <include file="$(find blitzcrank)/launch/ar-track.launch" />
 
     <!-- Robot base to world transform: change depending on base position -->
     <!-- <node pkg="tf" type="static_transform_publisher" name="robot_base_broadcaster" args="0 0 0 0 0 3.14 world j2s6s300_link_base 100" /> -->

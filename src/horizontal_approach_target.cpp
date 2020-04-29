@@ -89,11 +89,7 @@ int main(int argc, char** argv) {
   
   move_group.setPoseTarget(target_pose);
 
-  // Now, we call the planner to compute the plan and visualize it.
-  // Note that we are just planning, not asking move_group
-  // to actually move the robot.
   moveit::planning_interface::MoveGroupInterface::Plan my_plan;
-
   bool success = (move_group.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
   ROS_INFO("Pose goal %s", success ? "SUCCESS" : "FAILED");
 
@@ -127,11 +123,7 @@ int main(int argc, char** argv) {
   move_group.setStartStateToCurrentState();
 
   // OPEN FINGERS //
-  move_fingers(0);
-
-  // MOVE FORWARD //
-
-  // TODO move forward, close fingers, etc.
+  //move_fingers(0); - TODO do this with PoseVelocityWithFingers
 
   ros::shutdown();
   return 0;
