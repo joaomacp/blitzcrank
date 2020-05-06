@@ -16,6 +16,8 @@
  * Approach target object, gripper horizontal in front of target
 **/
 
+const double APPROACH_DISTANCE = 0.25;
+
 bool gazebo = false;
 std::string target_frame;
 
@@ -83,8 +85,8 @@ int main(int argc, char** argv) {
 
   tf2::convert(q_rot, target_pose.orientation);
  
-  target_pose.position.x = targetTransform.transform.translation.x + 0.1*cos(rot_angle);
-  target_pose.position.y = targetTransform.transform.translation.y + 0.1*sin(rot_angle);
+  target_pose.position.x = targetTransform.transform.translation.x + APPROACH_DISTANCE*cos(rot_angle);
+  target_pose.position.y = targetTransform.transform.translation.y + APPROACH_DISTANCE*sin(rot_angle);
   target_pose.position.z = targetTransform.transform.translation.z + 0.05;
   
   move_group.setPoseTarget(target_pose);
@@ -108,8 +110,8 @@ int main(int argc, char** argv) {
     blitzcrank::GetTargetAlignment get_target_alignment;
     get_target_alignment.request.parent = "coke_marker::marker_link";
     get_target_alignment.request.child = "j2s6s300::j2s6s300_link_finger_tip_1";
-    get_target_alignment.request.desired_transform.translation.x = 0.1*cos(rot_angle);
-    get_target_alignment.request.desired_transform.translation.y = 0.1*sin(rot_angle);
+    get_target_alignment.request.desired_transform.translation.x = APPROACH_DISTANCE*cos(rot_angle);
+    get_target_alignment.request.desired_transform.translation.y = APPROACH_DISTANCE*sin(rot_angle);
     get_target_alignment.request.desired_transform.translation.z + 0.05;
 
     if (getAlignmentClient.call(get_target_alignment)) {

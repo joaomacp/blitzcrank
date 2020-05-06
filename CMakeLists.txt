@@ -52,6 +52,7 @@ add_executable(vertical_approach_target src/vertical_approach_target.cpp)
 add_executable(horizontal_approach_target src/horizontal_approach_target.cpp)
 
 add_executable(joint_trajectory_control src/joint_trajectory_control.cpp)
+add_executable(visual_servoing src/visual_servoing.cpp)
 
 add_executable(gazebo_interface src/gazebo_interface.cpp)
 add_dependencies(gazebo_interface ${PROJECT_NAME}_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
@@ -61,6 +62,7 @@ target_link_libraries(vertical_planning_scene ${catkin_LIBRARIES})
 target_link_libraries(vertical_approach_target ${catkin_LIBRARIES})
 
 target_link_libraries(joint_trajectory_control ${catkin_LIBRARIES})
+target_link_libraries(visual_servoing ${catkin_LIBRARIES})
 
 target_link_libraries(horizontal_approach_target ${catkin_LIBRARIES})
 add_dependencies(horizontal_approach_target ${PROJECT_NAME}_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
@@ -75,4 +77,5 @@ install(TARGETS vertical_planning_scene DESTINATION ${CATKIN_PACKAGE_BIN_DESTINA
 install(TARGETS vertical_approach_target DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 install(TARGETS horizontal_approach_target DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 install(TARGETS joint_trajectory_control DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+install(TARGETS visual_servoing DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 install(TARGETS gazebo_interface DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
