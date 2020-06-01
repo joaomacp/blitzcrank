@@ -30,8 +30,6 @@ void visual_servo(const ros::TimerEvent&) {
   }
 
   // Transform the pose to the root frame
-  //targetTransform = tfBuffer.transform(targetTransform, "root", ros::Duration(1));
-  //tfBuffer.transform(targetTransform, targetTransform, "root", ros::Duration(1));
   tf2::doTransform(targetTransform, targetTransform, rootToGripperTransform);
   //ROS_INFO("Target transform (root frame): X %f | Y %f | Z %f", targetTransform.transform.translation.x, targetTransform.transform.translation.y, targetTransform.transform.translation.z);
 
@@ -80,7 +78,6 @@ int main(int argc, char** argv) {
   }
   ROS_INFO("Target frame: %s", target_frame.c_str());
 
-  // Get eef<-target pose
   tf2_ros::TransformListener tfListener(tfBuffer);
 
   ros::Duration(2).sleep();

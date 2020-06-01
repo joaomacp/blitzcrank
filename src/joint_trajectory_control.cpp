@@ -62,6 +62,8 @@ void setTrajectory(geometry_msgs::Pose msg) {
   Inverse jacobian adapted from: https://github.com/UTNuclearRoboticsPublic/jog_arm/blob/kinetic/jog_arm/src/jog_arm/jog_arm_server.cpp
 */
 void setTrajectoryFromVelocity(geometry_msgs::Twist msg) {
+  // Based on Gazebo tests, the gripper has a tendency to move down
+
   // end-effector velocity vector
   Eigen::VectorXd eef_vel(6);
   eef_vel[0] = msg.linear.x;
