@@ -18,7 +18,7 @@
     <!-- Simulated robot: Launch node that interfaces with Gazebo to get / set transforms -->
     <node if="$(arg gazebo)" pkg="blitzcrank" type="gazebo_interface" name="gazebo_interface" output="screen"/>
 
-    <!-- Real robot: Publish static transform from robot base to camera -->
+    <!-- Real robot: Publish static transform from robot base to camera TODO: use the yaml file-->
     <node unless="$(arg gazebo)" pkg="tf" type="static_transform_publisher" name="camera_rgb_optical_frame_broadcaster" args="-0.5 -0.4 0.5 0 0 4.1 j2s6s300_link_base camera_rgb_optical_frame 100" />
 
     <!-- Add the table and camera pole collision object to planning scene -->

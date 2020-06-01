@@ -20,7 +20,7 @@ void visual_servo(const ros::TimerEvent&) {
     targetTransform = tfBuffer.lookupTransform("ar_marker_0", target_frame, ros::Time(0), ros::Duration(5.0));
     //ROS_INFO("Target transform: X %f | Y %f | Z %f", targetTransform.transform.translation.x, targetTransform.transform.translation.y, targetTransform.transform.translation.z);
 
-    rootToGripperTransform = tfBuffer.lookupTransform("root", "ar_marker_0", ros::Time(0), ros::Duration(5.0));
+    rootToGripperTransform = tfBuffer.lookupTransform("root", "ar_marker_0", ros::Time(0), ros::Duration(5.0)); // TODO this ar_marker_0 should probably be marker_0_link (think about it - also, this doesn't exist in the real robot, will need to be a static transform)
     rootToGripperTransform.transform.translation = geometry_msgs::Vector3(); // We only want rotation
   }
   catch (tf2::TransformException &ex) {

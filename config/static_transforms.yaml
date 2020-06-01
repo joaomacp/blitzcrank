@@ -1,0 +1,17 @@
+- parent_frame: j2s6s300_link_base
+  child_frame: camera_rgb_optical_frame
+  x: -0.5
+  y: -0.4
+  z: 0.5
+  yaw: 0
+  pitch: 0
+  roll: 4.1
+  
+- parent_frame: 
+  child_frame: 
+  x: 
+  y: 
+  z: 
+  yaw: 
+  pitch: 
+  roll: 
