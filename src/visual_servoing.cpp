@@ -33,29 +33,43 @@ void visual_servo(const ros::TimerEvent&) {
   tf2::doTransform(targetTransform, targetTransform, rootToGripperTransform);
   //ROS_INFO("Target transform (root frame): X %f | Y %f | Z %f", targetTransform.transform.translation.x, targetTransform.transform.translation.y, targetTransform.transform.translation.z);
 
+  // 2D
   // Get 2D angle and error (xy plane)
-  double rot_angle = atan2(targetTransform.transform.translation.y, targetTransform.transform.translation.x);
-  double error = sqrt(pow(targetTransform.transform.translation.x, 2.0) + pow(targetTransform.transform.translation.y, 2.0));
+  // double rot_angle = atan2(targetTransform.transform.translation.y, targetTransform.transform.translation.x);
+  // double error = sqrt(pow(targetTransform.transform.translation.x, 2.0) + pow(targetTransform.transform.translation.y, 2.0));
 
-  double speed = std::min(error, 0.01); // meters/sec
+  // double speed = std::min(error, 0.01); // meters/sec
 
-  // EEF velocity
-  double eef_vel_x = speed*cos(rot_angle);
-  double eef_vel_y = speed*sin(rot_angle);
+  // // EEF velocity
+  // double eef_vel_x = speed*cos(rot_angle);
+  // double eef_vel_y = speed*sin(rot_angle);
 
-  ROS_INFO("Sending x: %f,y: %f", eef_vel_x, eef_vel_y);
+  // ROS_INFO("Sending x: %f,y: %f", eef_vel_x, eef_vel_y);
 
-  if (!gazebo) {
-    // Real robot. TODO: send vels to driver (cartesian velocity control)
-  }
-  else {
-    // Simulated robot. send twist to joint_trajectory_control
-    geometry_msgs::Twist twist;
-    twist.linear.x = eef_vel_x;
-    twist.linear.y = eef_vel_y;
+  // if (!gazebo) {
+  //   // Real robot. TODO: send vels to driver (cartesian velocity control)
+  // }
+  // else {
+  //   // Simulated robot. send twist to joint_trajectory_control
+  //   geometry_msgs::Twist twist;
+  //   twist.linear.x = eef_vel_x;
+  //   twist.linear.y = eef_vel_y;
 
-    vel_pub.publish(twist);
-  }
+  //   vel_pub.publish(twist);
+  // }
+
+  // 3D
+  // targetTransform is the gripper_marker->target_marker transform, rotated to base frame
+  // TODO should be gripper->target, based on fixed transforms between marker and real things
+
+  // Scale the transform vector, based on K
+  double K = 0.1; // TODO make this a ROS param
+  targetTransform.transform.translation.x *= K;
+  targetTransform.transform.translation.y *= K;
+  targetTransform.transform.translation.z *= K;
+
+  // clamp the vector's magnitude
+  // TODO NOW THIS OPERATION....
 }
 
 int main(int argc, char** argv) {
