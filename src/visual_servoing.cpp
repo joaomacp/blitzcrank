@@ -60,7 +60,7 @@ void visual_servo(const ros::TimerEvent&) {
 
   // 3D
   // targetTransform is the gripper_marker->target_marker transform, rotated to base frame
-  // TODO should be gripper->target, based on fixed transforms between marker and real things
+  // TODO should be gripper->target, based on fixed transforms between markers and real objects
 
   // Scale the transform vector, based on K
   double K = 0.1; // TODO make this a ROS param
@@ -68,8 +68,36 @@ void visual_servo(const ros::TimerEvent&) {
   targetTransform.transform.translation.y *= K;
   targetTransform.transform.translation.z *= K;
 
-  // clamp the vector's magnitude
-  // TODO NOW THIS OPERATION....
+  // clamp the vector's magnitude (speed cap)
+  double SPEED_CAP = 0.1; // TODO make this a ROS param - Speed cap is 10cm/sec
+  double magnitude = sqrt( pow(targetTransform.transform.translation.x, 2.0) + pow(targetTransform.transform.translation.y, 2.0) + pow(targetTransform.transform.translation.z, 2.0) );
+  if(magnitude > SPEED_CAP) { 
+    // Divide transform by its magnitude : normalize it to length 1
+    targetTransform.transform.translation.x /= magnitude;
+    targetTransform.transform.translation.y /= magnitude;
+    targetTransform.transform.translation.z /= magnitude;
+
+    // Multiply by speed cap
+    targetTransform.transform.translation.x *= SPEED_CAP;
+    targetTransform.transform.translation.y *= SPEED_CAP;
+    targetTransform.transform.translation.z *= SPEED_CAP;
+  }
+
+  ROS_INFO("Sending x: %f,y: %f,z: %f", targetTransform.transform.translation.x, targetTransform.transform.translation.y, targetTransform.transform.translation.z);
+
+  if (!gazebo) {
+    // Real robot. TODO: send vels to driver (cartesian velocity control)
+  }
+  else {
+    // Simulated robot. send twist to joint_trajectory_control
+    geometry_msgs::Twist twist;
+    twist.linear.x = targetTransform.transform.translation.x;
+    twist.linear.y = targetTransform.transform.translation.y;
+    twist.linear.z = targetTransform.transform.translation.z;
+
+    vel_pub.publish(twist);
+  }
+
 }
 
 int main(int argc, char** argv) {
