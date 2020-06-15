@@ -53,6 +53,7 @@ add_executable(horizontal_approach_target src/horizontal_approach_target.cpp)
 
 add_executable(joint_trajectory_control src/joint_trajectory_control.cpp)
 add_executable(visual_servoing src/visual_servoing.cpp)
+add_executable(test_tf_broadcaster src/test_tf_broadcaster.cpp)
 
 add_executable(gazebo_interface src/gazebo_interface.cpp)
 add_dependencies(gazebo_interface ${PROJECT_NAME}_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
@@ -68,6 +69,7 @@ target_link_libraries(horizontal_approach_target ${catkin_LIBRARIES})
 add_dependencies(horizontal_approach_target ${PROJECT_NAME}_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
 
 target_link_libraries(gazebo_interface ${catkin_LIBRARIES})
+target_link_libraries(test_tf_broadcaster ${catkin_LIBRARIES})
 
 #############
 ## Install ##
@@ -79,3 +81,4 @@ install(TARGETS horizontal_approach_target DESTINATION ${CATKIN_PACKAGE_BIN_DEST
 install(TARGETS joint_trajectory_control DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 install(TARGETS visual_servoing DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 install(TARGETS gazebo_interface DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+install(TARGETS test_tf_broadcaster DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
