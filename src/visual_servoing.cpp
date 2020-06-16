@@ -42,11 +42,9 @@ void visual_servo(const ros::TimerEvent&) {
   // New way, with differences
   ROS_INFO("----------");
 
-  // TODO make the marker0_link<-virtual_tool tf be actually marker0_rotated<-virtual_tool, according to rotations on test_tf_broadcaster
-
   try{
     eefTransform = tfBuffer.lookupTransform("root", "ar_marker_0", ros::Time(0), ros::Duration(5.0));
-    toolTransform = tfBuffer.lookupTransform("marker0_link", "virtual_tool", ros::Time(0), ros::Duration(5.0));
+    toolTransform = tfBuffer.lookupTransform("marker0_rotated", "virtual_tool", ros::Time(0), ros::Duration(5.0));
     targetTransform = tfBuffer.lookupTransform("root", target_frame, ros::Time(0), ros::Duration(5.0));
   }
   catch (tf2::TransformException &ex) {
@@ -55,6 +53,7 @@ void visual_servo(const ros::TimerEvent&) {
     return;
   }
   ROS_INFO("eefTransform: X %f | Y %f | Z %f", eefTransform.transform.translation.x, eefTransform.transform.translation.y, eefTransform.transform.translation.z);
+  ROS_INFO("toolTransform: X %f | Y %f | Z %f", toolTransform.transform.translation.x, toolTransform.transform.translation.y, toolTransform.transform.translation.z);
   ROS_INFO("targetTransform: X %f | Y %f | Z %f", targetTransform.transform.translation.x, targetTransform.transform.translation.y, targetTransform.transform.translation.z);
 
 
@@ -71,6 +70,8 @@ void visual_servo(const ros::TimerEvent&) {
   targetTf.setRotation(tf::Quaternion(0, 0, 0, 1));
 
   errorTf = (eefTf*toolTf).inverseTimes(targetTf);
+
+  ROS_INFO("eefTf*toolTf: X %f | Y %f | Z %f", (eefTf*toolTf).getOrigin().getX(), (eefTf*toolTf).getOrigin().getY(), (eefTf*toolTf).getOrigin().getZ());
 
   ROS_INFO("errorTf: X %f | Y %f | Z %f", errorTf.getOrigin().getX(), errorTf.getOrigin().getY(), errorTf.getOrigin().getZ());
 
