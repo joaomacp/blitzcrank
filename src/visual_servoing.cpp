@@ -65,13 +65,19 @@ void visual_servo(const ros::TimerEvent&) {
   ROS_INFO("targetTf: X %f | Y %f | Z %f", targetTf.getOrigin().getX(), targetTf.getOrigin().getY(), targetTf.getOrigin().getZ());
 
   // Discarding rotation, because we only care about translation
-  eefTf.setRotation(tf::Quaternion(0, 0, 0, 1));
-  toolTf.setRotation(tf::Quaternion(0, 0, 0, 1));
+  //eefTf.setRotation(tf::Quaternion(0, 0, 0, 1));
+  //toolTf.setRotation(tf::Quaternion(0, 0, 0, 1));
   targetTf.setRotation(tf::Quaternion(0, 0, 0, 1));
 
-  errorTf = (eefTf*toolTf).inverseTimes(targetTf);
+  // multiply first, then discard rotation
+  eefTf *= toolTf;
+  eefTf.setRotation(tf::Quaternion(0, 0, 0, 1));
 
-  ROS_INFO("eefTf*toolTf: X %f | Y %f | Z %f", (eefTf*toolTf).getOrigin().getX(), (eefTf*toolTf).getOrigin().getY(), (eefTf*toolTf).getOrigin().getZ());
+  //errorTf = (eefTf*toolTf).inverseTimes(targetTf);
+  errorTf = eefTf.inverseTimes(targetTf);
+
+  //ROS_INFO("eefTf*toolTf: X %f | Y %f | Z %f", (eefTf*toolTf).getOrigin().getX(), (eefTf*toolTf).getOrigin().getY(), (eefTf*toolTf).getOrigin().getZ());
+  ROS_INFO("eefTf*toolTf: X %f | Y %f | Z %f", eefTf.getOrigin().getX(), eefTf.getOrigin().getY(), eefTf.getOrigin().getZ());
 
   ROS_INFO("errorTf: X %f | Y %f | Z %f", errorTf.getOrigin().getX(), errorTf.getOrigin().getY(), errorTf.getOrigin().getZ());
 

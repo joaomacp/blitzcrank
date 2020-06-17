@@ -25,7 +25,7 @@
     <node unless="$(arg gazebo)" pkg="tf" type="static_transform_publisher" name="camera_rgb_optical_frame_broadcaster" args="-0.5 -0.4 0.5 0 0 4.1 j2s6s300_link_base camera_rgb_optical_frame 100" />
 
     <!-- TODO: use the yaml file -->
-    <node pkg="tf" type="static_transform_publisher" name="virtual_tool_broadcaster" args="0 0 0.08 0 0 0 j2s6s300_end_effector virtual_tool 100" />
+    <node pkg="tf" type="static_transform_publisher" name="virtual_tool_broadcaster" args="0 0 0.12 0 0 0 j2s6s300_end_effector virtual_tool 100" />
 
     <!-- Add the table and camera pole collision object to planning scene -->
     <node pkg="blitzcrank" type="vertical_planning_scene" name="vertical_planning_scene" />
