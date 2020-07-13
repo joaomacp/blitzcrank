@@ -12,6 +12,7 @@ find_package(catkin REQUIRED
     moveit_core
     moveit_ros_planning
     moveit_ros_planning_interface
+    moveit_commander
     pluginlib
     cmake_modules
     geometric_shapes

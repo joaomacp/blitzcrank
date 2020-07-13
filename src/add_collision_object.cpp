@@ -8,6 +8,8 @@
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <moveit_msgs/CollisionObject.h>
 
+#include <moveit/planning_scene_monitor/planning_scene_monitor.h>
+
 tf2_ros::Buffer tfBuffer;
 std::string target_frame;
 geometry_msgs::TransformStamped targetTransform;
@@ -83,4 +85,14 @@ int main(int argc, char **argv)
     collision_object.primitive_poses.push_back(cylinder_pose);
     collision_object.operation = collision_object.ADD;
     planning_scene_interface.applyCollisionObject(collision_object);
+
+    /// -- Planning scene monitor - allow target_object in the AllowedCollisionMatrix
+    planning_scene_monitor::PlanningSceneMonitorPtr psm = planning_scene_monitor::PlanningSceneMonitorPtr(
+    new planning_scene_monitor::PlanningSceneMonitor("robot_description"));
+
+    planning_scene_monitor::LockedPlanningSceneRW planning_scene = planning_scene_monitor::LockedPlanningSceneRW(psm);
+
+    collision_detection::AllowedCollisionMatrix acm = planning_scene->getAllowedCollisionMatrix();
+
+    acm.setDefaultEntry("target_object", true);
 }
