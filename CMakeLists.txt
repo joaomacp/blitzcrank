@@ -40,6 +40,8 @@ catkin_package(
     geometry_msgs
     moveit_core
     moveit_ros_planning_interface
+    moveit_ros_perception
+    moveit_commander
     interactive_markers
 )
 
