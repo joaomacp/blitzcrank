@@ -54,7 +54,7 @@ int main(int argc, char **argv)
     /* Setting height of cylinder. */ // TODO hardcoded for now, change this
     primitive.dimensions[0] = 0.2;
     /* Setting radius of cylinder. */
-    primitive.dimensions[1] = 0.05;
+    primitive.dimensions[1] = 0.03;
 
     // Define a pose for the cylinder (specified relative to frame_id).
     geometry_msgs::Pose cylinder_pose;
