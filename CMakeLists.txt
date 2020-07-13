@@ -5,6 +5,7 @@ add_definitions(-std=c++11)
 find_package(catkin REQUIRED
     COMPONENTS
     roscpp
+    rospy
     std_msgs
     geometry_msgs
     message_generation
@@ -18,6 +19,8 @@ find_package(catkin REQUIRED
     tf2_ros
 )
 
+catkin_python_setup()
+
 add_service_files(
   FILES
   SetCameraOffset.srv
@@ -29,6 +32,7 @@ generate_messages(DEPENDENCIES std_msgs geometry_msgs)
 catkin_package(
   CATKIN_DEPENDS
     roscpp
+    rospy
     message_generation
     tf2
     tf2_ros

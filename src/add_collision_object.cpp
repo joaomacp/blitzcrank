@@ -19,8 +19,8 @@ int main(int argc, char **argv)
   ros::AsyncSpinner spinner(1);
   spinner.start();
 
-  if(node_handle.hasParam("target_frame")) {
-    node_handle.getParam("target_frame", target_frame);
+  if(node_handle.hasParam("/target_frame")) {
+    node_handle.getParam("/target_frame", target_frame);
   } else {
     ROS_ERROR("'target_frame' param not given");
     ros::shutdown();
