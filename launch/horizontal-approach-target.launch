@@ -1,9 +1,15 @@
 <launch>
     <arg name="gazebo" default="false" />
 
-    <remap from="/joint_states" to="/j2s6s300/joint_states" />
+    <arg name="root_frame" default="world" if="$(arg gazebo)" />
+    <arg name="root_frame" default="root" unless="$(arg gazebo)" />
+
+    <arg name="arm_name" default="kinova" />
+
+    <remap from="/joint_states" to="/$(arg arm_name)/joint_states" />
     <node pkg="blitzcrank" type="horizontal_approach_target" name="horizontal_approach_target" output="screen">
         <param name="gazebo" value="$(arg gazebo)" />
+        <param name="root_frame" value="$(arg root_frame)" />
         <param name="target_frame" value="ar_marker_3" />
     </node>
 </launch>

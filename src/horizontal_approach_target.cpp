@@ -20,6 +20,7 @@ const double APPROACH_DISTANCE = 0.25;
 
 bool gazebo = false;
 std::string target_frame;
+std::string root_frame;
 
 // rosrun kinova_demo fingers_action_client.py j2s6s300 percent 75 75 75
 void move_fingers(int percent_closed) {
@@ -40,6 +41,14 @@ int main(int argc, char** argv) {
     node_handle.getParam("gazebo", gazebo);
   }
 
+  if(node_handle.hasParam("root_frame")) {
+    node_handle.getParam("root_frame", root_frame);
+  } else {
+    ROS_ERROR("'root_frame' param not given");
+    ros::shutdown();
+  }
+  ROS_INFO("Root frame: %s", root_frame.c_str());
+
   if(node_handle.hasParam("target_frame")) {
     node_handle.getParam("target_frame", target_frame);
   } else {
@@ -58,11 +67,11 @@ int main(int argc, char** argv) {
 
   geometry_msgs::TransformStamped targetTransform;
   try{
-    targetTransform = tfBuffer.lookupTransform("world", target_frame, ros::Time(0), ros::Duration(2.0));
+    targetTransform = tfBuffer.lookupTransform(root_frame, target_frame, ros::Time(0), ros::Duration(2.0));
     ROS_INFO("Target transform: X %f | Y %f | Z %f", targetTransform.transform.translation.x, targetTransform.transform.translation.y, targetTransform.transform.translation.z);
   }
   catch (tf2::TransformException &ex) {
-    ROS_ERROR("Error getting (world -> target) transform: %s",ex.what());
+    ROS_ERROR("Error getting (root -> target) transform: %s",ex.what());
     ros::shutdown();
     return 0;
   }
@@ -76,20 +85,31 @@ int main(int argc, char** argv) {
   geometry_msgs::Pose target_pose;
 
   // Target arm rotation will be parallel to xy (ground) plane, and have an angle pointing from robot base XY -> target XY
-  double rot_angle = atan2(targetTransform.transform.translation.y, targetTransform.transform.translation.x) - 3.14; // TODO normalize
+  // double rot_angle = atan2(targetTransform.transform.translation.y, targetTransform.transform.translation.x) - 3.14; // TODO normalize
+
+  // FOR HORIZONTAL BASE IN MBOT: xz instead of xy
+  double rot_angle = atan2(targetTransform.transform.translation.z, targetTransform.transform.translation.x) - 3.14; // TODO normalize
 
   tf2::Quaternion q_rot;
-  double r=0, p=-1.57, y=rot_angle; 
+  double r=0, p=-0, y=rot_angle; 
   q_rot.setRPY(r, p, y);
   q_rot.normalize();
 
   tf2::convert(q_rot, target_pose.orientation);
  
-  target_pose.position.x = targetTransform.transform.translation.x + APPROACH_DISTANCE*cos(rot_angle);
-  target_pose.position.y = targetTransform.transform.translation.y + APPROACH_DISTANCE*sin(rot_angle);
-  target_pose.position.z = targetTransform.transform.translation.z + 0.05;
+ // vertical arm:
+ // target_pose.position.x = targetTransform.transform.translation.x + APPROACH_DISTANCE*cos(rot_angle);
+ // target_pose.position.y = targetTransform.transform.translation.y + APPROACH_DISTANCE*sin(rot_angle);
+ // target_pose.position.z = targetTransform.transform.translation.z + 0.05;
   
+// horizontal arm (mbot)
+ target_pose.position.x = targetTransform.transform.translation.x + APPROACH_DISTANCE*cos(rot_angle);
+ target_pose.position.z = targetTransform.transform.translation.z + APPROACH_DISTANCE*sin(rot_angle);
+ target_pose.position.y = targetTransform.transform.translation.y - 0.05;
+
   move_group.setPoseTarget(target_pose);
+
+  ROS_INFO("Making movegroup plan to target pose: X: %f | Y: %f |  Z: %f", target_pose.position.x, target_pose.position.y, target_pose.position.z);
 
   moveit::planning_interface::MoveGroupInterface::Plan my_plan;
   bool success = (move_group.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);

@@ -10,7 +10,7 @@
     </include> -->
 
     <!-- Instead of above: track bundles -->
-    <include file="$(find blitzcrank)/launch/ar-track.launch" />
+    <include file="$(find blitzcrank)/launch/ar-track-gazebo.launch" />
 
     <!-- Robot base to world transform: change depending on base position -->
     <!-- <node pkg="tf" type="static_transform_publisher" name="robot_base_broadcaster" args="0 0 0 0 0 3.14 world j2s6s300_link_base 100" /> -->
