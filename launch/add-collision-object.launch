@@ -1,7 +1,7 @@
 <launch>
-    <node pkg="blitzcrank" type="add_collision_object" name="add_collision_object" output="screen">
-        <param name="target_frame" value="ar_marker_3" /> <!-- TODO this should be on parameter server -->
-    </node>
+    <param name="target_frame" value="ar_marker_3" />
+
+    <node pkg="blitzcrank" type="add_collision_object" name="add_collision_object" output="screen" />
 
     <node pkg="blitzcrank" type="allow_object_collision.py" name="allow_object_collision" output="screen"/>
 </launch>
