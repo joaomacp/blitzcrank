@@ -80,20 +80,28 @@ int main(int argc, char **argv)
     cylinder_pose.position.y = targetTransform.transform.translation.y;
     cylinder_pose.position.z = targetTransform.transform.translation.z;
 
-    /// -- Planning scene monitor - allow target_object in the AllowedCollisionMatrix
+    /// -- Planning scene monitor
     planning_scene_monitor::PlanningSceneMonitorPtr psm = planning_scene_monitor::PlanningSceneMonitorPtr(
     new planning_scene_monitor::PlanningSceneMonitor("robot_description"));
 
     planning_scene_monitor::LockedPlanningSceneRW planning_scene = planning_scene_monitor::LockedPlanningSceneRW(psm);
 
-    collision_detection::AllowedCollisionMatrix acm = planning_scene->getAllowedCollisionMatrix();
-   acm.setDefaultEntry("target_object", true);
-
      // Add cylinder as collision object
     collision_object.primitives.push_back(primitive);
     collision_object.primitive_poses.push_back(cylinder_pose);
     collision_object.operation = collision_object.ADD;
-    planning_scene_interface.applyCollisionObject(collision_object);
+    
+    moveit_msgs::PlanningScene planning_scene_msg;
+    planning_scene_msg.world.collision_objects.push_back(collision_object);
+    planning_scene_msg.is_diff = true;
+
+    planning_scene::PlanningScenePtr scene_diff = planning_scene->diff(planning_scene_msg);
+
+    planning_scene->pushDiffs(scene_diff);
+
+    // Allow cylinder to collide with robot
+    collision_detection::AllowedCollisionMatrix acm = planning_scene->getAllowedCollisionMatrix();
+    acm.setDefaultEntry("target_object", true);
 
     std::vector<std::string> acmEntryNames;
     acm.getAllEntryNames(acmEntryNames);
