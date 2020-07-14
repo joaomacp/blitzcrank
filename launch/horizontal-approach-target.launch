@@ -2,7 +2,7 @@
     <arg name="gazebo" default="false" />
 
     <arg name="root_frame" default="world" if="$(arg gazebo)" />
-    <arg name="root_frame" default="root" unless="$(arg gazebo)" />
+    <arg name="root_frame" default="base_link" unless="$(arg gazebo)" />
 
     <arg name="arm_name" default="kinova" />
 

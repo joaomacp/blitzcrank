@@ -91,7 +91,8 @@ int main(int argc, char** argv) {
   double rot_angle = atan2(targetTransform.transform.translation.z, targetTransform.transform.translation.x) - 3.14; // TODO normalize
 
   tf2::Quaternion q_rot;
-  double r=0, p=-0, y=rot_angle; 
+  //double r=0, p=-0, y=rot_angle;
+  double r=0, p=1.5, y=0;
   q_rot.setRPY(r, p, y);
   q_rot.normalize();
 
@@ -105,7 +106,7 @@ int main(int argc, char** argv) {
 // horizontal arm (mbot)
  target_pose.position.x = targetTransform.transform.translation.x + APPROACH_DISTANCE*cos(rot_angle);
  target_pose.position.z = targetTransform.transform.translation.z + APPROACH_DISTANCE*sin(rot_angle);
- target_pose.position.y = targetTransform.transform.translation.y - 0.05;
+ target_pose.position.y = targetTransform.transform.translation.y + 0.05;
 
   move_group.setPoseTarget(target_pose);
 

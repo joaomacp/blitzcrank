@@ -56,7 +56,7 @@ int main(int argc, char **argv)
     /* Setting height of cylinder. */ // TODO hardcoded for now, change this
     primitive.dimensions[0] = 0.2;
     /* Setting radius of cylinder. */
-    primitive.dimensions[1] = 0.03;
+    primitive.dimensions[1] = 0.02;
 
     // Define a pose for the cylinder (specified relative to frame_id).
     geometry_msgs::Pose cylinder_pose;
@@ -80,12 +80,6 @@ int main(int argc, char **argv)
     cylinder_pose.position.y = targetTransform.transform.translation.y;
     cylinder_pose.position.z = targetTransform.transform.translation.z;
 
-    // Add cylinder as collision object
-    collision_object.primitives.push_back(primitive);
-    collision_object.primitive_poses.push_back(cylinder_pose);
-    collision_object.operation = collision_object.ADD;
-    planning_scene_interface.applyCollisionObject(collision_object);
-
     /// -- Planning scene monitor - allow target_object in the AllowedCollisionMatrix
     planning_scene_monitor::PlanningSceneMonitorPtr psm = planning_scene_monitor::PlanningSceneMonitorPtr(
     new planning_scene_monitor::PlanningSceneMonitor("robot_description"));
@@ -93,6 +87,17 @@ int main(int argc, char **argv)
     planning_scene_monitor::LockedPlanningSceneRW planning_scene = planning_scene_monitor::LockedPlanningSceneRW(psm);
 
     collision_detection::AllowedCollisionMatrix acm = planning_scene->getAllowedCollisionMatrix();
+   acm.setDefaultEntry("target_object", true);
 
-    acm.setDefaultEntry("target_object", true);
+     // Add cylinder as collision object
+    collision_object.primitives.push_back(primitive);
+    collision_object.primitive_poses.push_back(cylinder_pose);
+    collision_object.operation = collision_object.ADD;
+    planning_scene_interface.applyCollisionObject(collision_object);
+
+    std::vector<std::string> acmEntryNames;
+    acm.getAllEntryNames(acmEntryNames);
+    for(auto i : acmEntryNames) {
+        ROS_INFO("%s",i.c_str());
+    } 
 }
