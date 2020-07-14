@@ -90,14 +90,19 @@ int main(int argc, char **argv)
     collision_object.primitives.push_back(primitive);
     collision_object.primitive_poses.push_back(cylinder_pose);
     collision_object.operation = collision_object.ADD;
+
+    // by PlanningSceneInterface
+    moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
+    planning_scene_interface.applyCollisionObject(collision_object);
     
-    moveit_msgs::PlanningScene planning_scene_msg;
-    planning_scene_msg.world.collision_objects.push_back(collision_object);
-    planning_scene_msg.is_diff = true;
+    // By planning scene monitor
+    //moveit_msgs::PlanningScene planning_scene_msg;
+    // planning_scene_msg.world.collision_objects.push_back(collision_object);
+    // planning_scene_msg.is_diff = true;
 
-    planning_scene::PlanningScenePtr scene_diff = planning_scene->diff(planning_scene_msg);
+    // planning_scene::PlanningScenePtr scene_diff = planning_scene->diff(planning_scene_msg);
 
-    planning_scene->pushDiffs(scene_diff);
+    // planning_scene->pushDiffs(scene_diff);
 
     // Allow cylinder to collide with robot
     collision_detection::AllowedCollisionMatrix acm = planning_scene->getAllowedCollisionMatrix();
