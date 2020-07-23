@@ -8,6 +8,8 @@ find_package(catkin REQUIRED
     rospy
     std_msgs
     geometry_msgs
+    kinova_msgs
+    moveit_msgs
     message_generation
     moveit_core
     moveit_ros_planning
@@ -39,6 +41,8 @@ catkin_package(
     tf2_ros
     std_msgs
     geometry_msgs
+    kinova_msgs
+    moveit_msgs
     moveit_core
     moveit_ros_planning_interface
     moveit_ros_perception
@@ -59,6 +63,7 @@ add_executable(vertical_approach_target src/vertical_approach_target.cpp)
 add_executable(horizontal_approach_target src/horizontal_approach_target.cpp)
 
 add_executable(joint_trajectory_control src/joint_trajectory_control.cpp)
+add_executable(ar_track_republish src/ar_track_republish.cpp)
 add_executable(visual_servoing src/visual_servoing.cpp)
 add_executable(add_collision_object src/add_collision_object.cpp)
 add_executable(test_tf_broadcaster src/test_tf_broadcaster.cpp)
@@ -71,6 +76,7 @@ target_link_libraries(vertical_planning_scene ${catkin_LIBRARIES})
 target_link_libraries(vertical_approach_target ${catkin_LIBRARIES})
 
 target_link_libraries(joint_trajectory_control ${catkin_LIBRARIES})
+target_link_libraries(ar_track_republish ${catkin_LIBRARIES})
 target_link_libraries(visual_servoing ${catkin_LIBRARIES})
 target_link_libraries(add_collision_object ${catkin_LIBRARIES})
 
@@ -88,6 +94,7 @@ install(TARGETS vertical_planning_scene DESTINATION ${CATKIN_PACKAGE_BIN_DESTINA
 install(TARGETS vertical_approach_target DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 install(TARGETS horizontal_approach_target DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 install(TARGETS joint_trajectory_control DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+install(TARGETS ar_track_republish DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 install(TARGETS visual_servoing DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 install(TARGETS add_collision_object DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 install(TARGETS gazebo_interface DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})

@@ -16,7 +16,7 @@
  * Approach target object, gripper horizontal in front of target
 **/
 
-const double APPROACH_DISTANCE = 0.25;
+const double APPROACH_DISTANCE = 0.1;
 
 bool gazebo = false;
 std::string target_frame;
@@ -76,9 +76,11 @@ int main(int argc, char** argv) {
     return 0;
   }
 
-  const double VEL_SCALING = 0.5; // TODO: use a param?
+  const double VEL_SCALING = 0.35; // TODO: use a param?
+  const double YAW_ANGLE = 0.7;
   ROS_INFO("Setting velocity scaling: %f", VEL_SCALING);
   move_group.setMaxVelocityScalingFactor(VEL_SCALING);
+  move_group.setMaxAccelerationScalingFactor(VEL_SCALING);
 
   move_group.setStartStateToCurrentState();
 
@@ -88,15 +90,24 @@ int main(int argc, char** argv) {
   // double rot_angle = atan2(targetTransform.transform.translation.y, targetTransform.transform.translation.x) - 3.14; // TODO normalize
 
   // FOR HORIZONTAL BASE IN MBOT: xz instead of xy
-  double rot_angle = atan2(targetTransform.transform.translation.z, targetTransform.transform.translation.x) - 3.14; // TODO normalize
+  double rot_angle = atan2(targetTransform.transform.translation.y, targetTransform.transform.translation.x) - 3.14; // TODO normalize
+  // Add manipulator's yaw angle
+  rot_angle += YAW_ANGLE;
 
-  tf2::Quaternion q_rot;
+  tf2::Quaternion q_rot, q_rot_2, q_rot_3, q_new;
   //double r=0, p=-0, y=rot_angle;
-  double r=0, p=1.5, y=0;
+  double r=0, p=1.57, y=0;
   q_rot.setRPY(r, p, y);
-  q_rot.normalize();
 
-  tf2::convert(q_rot, target_pose.orientation);
+  q_rot_2.setRPY(1.57, 0, 0);
+
+  q_rot_3.setRPY(0, 0, YAW_ANGLE);
+
+  q_new = q_rot_3*q_rot_2*q_rot;  
+
+  q_new.normalize();
+
+  tf2::convert(q_new, target_pose.orientation);
  
  // vertical arm:
  // target_pose.position.x = targetTransform.transform.translation.x + APPROACH_DISTANCE*cos(rot_angle);
@@ -105,8 +116,8 @@ int main(int argc, char** argv) {
   
 // horizontal arm (mbot)
  target_pose.position.x = targetTransform.transform.translation.x + APPROACH_DISTANCE*cos(rot_angle);
- target_pose.position.z = targetTransform.transform.translation.z + APPROACH_DISTANCE*sin(rot_angle);
- target_pose.position.y = targetTransform.transform.translation.y + 0.05;
+ target_pose.position.y = targetTransform.transform.translation.y + APPROACH_DISTANCE*sin(rot_angle);
+ target_pose.position.z = targetTransform.transform.translation.z + 0.08;
 
   move_group.setPoseTarget(target_pose);
 

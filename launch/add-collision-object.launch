@@ -3,4 +3,5 @@
 
     <node pkg="blitzcrank" type="add_collision_object" name="add_collision_object" output="screen" />
 
+    <node pkg="blitzcrank" type="allow_object_collision.py" name="allow_object_collision" />
 </launch>

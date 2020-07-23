@@ -4,6 +4,7 @@
 #include <geometry_msgs/Twist.h>
 #include <trajectory_msgs/JointTrajectory.h>
 #include <trajectory_msgs/JointTrajectoryPoint.h>
+#include <kinova_msgs/JointVelocity.h>
 
 // MoveIt!
 #include <moveit/robot_model_loader/robot_model_loader.h>
@@ -14,52 +15,26 @@
 
 const int ATTEMPTS = 10;
 const double TIMEOUT = 0.1;
-const double DURATION = 0.5; // Assuming 2Hz Visual-Servoing
+const double DURATION = 0.5; // Assuming 2Hz Visual-Servoing (only used if gazebo=true)
 robot_state::JointModelGroup* arm_group;
 robot_state::RobotStatePtr kinematic_state;
 
+bool gazebo = false;
+bool debug = false;
+
 moveit::planning_interface::MoveGroupInterface *move_group;
 
-ros::Publisher traj_pub;
+ros::Publisher traj_pub, joint_vel_pub;
+
+kinova_msgs::JointVelocity joint_vel_msg;
 
 Eigen::MatrixXd pseudoInverse(const Eigen::MatrixXd& u_matrix, const Eigen::MatrixXd& v_matrix, const Eigen::MatrixXd& s_diagonals) {
   return v_matrix * s_diagonals.inverse() * u_matrix.transpose();
 }
 
-void setTrajectory(geometry_msgs::Pose msg) {
-  bool found_ik = kinematic_state->setFromIK(arm_group, msg, ATTEMPTS, TIMEOUT);
-
-  if (found_ik) {
-    std::vector<double> joint_values;
-    kinematic_state->copyJointGroupPositions(arm_group, joint_values);
-
-    // Send to ros_control
-    trajectory_msgs::JointTrajectory traj_msg;
-
-    traj_msg.header.stamp = ros::Time::now();
-    traj_msg.joint_names = arm_group->getVariableNames();
-
-    trajectory_msgs::JointTrajectoryPoint point;
-    for(int i = 0; i < 6; i++) { // 6 joints
-      point.positions.push_back(joint_values[i]);
-      point.velocities.push_back(0);
-      point.accelerations.push_back(0);
-      point.effort.push_back(0);
-
-      point.time_from_start = ros::Duration(DURATION);
-    }
-    traj_msg.points.push_back(point);
-
-    traj_pub.publish(traj_msg);
-  }
-  else {
-    ROS_INFO("Did not find IK solution");
-  }
-}
-
 /*
   Use inverse jacobian to apply joint goal (sent to ros_control) based on the given end-effector velocity
-  Inverse jacobian adapted from: https://github.com/UTNuclearRoboticsPublic/jog_arm/blob/kinetic/jog_arm/src/jog_arm/jog_arm_server.cpp
+ Inverse jacobian adapted from: https://github.com/UTNuclearRoboticsPublic/jog_arm/blob/kinetic/jog_arm/src/jog_arm/jog_arm_server.cpp
 */
 void setTrajectoryFromVelocity(geometry_msgs::Twist msg) {
   // Based on Gazebo tests, the gripper has a tendency to move down
@@ -80,50 +55,80 @@ void setTrajectoryFromVelocity(geometry_msgs::Twist msg) {
   Eigen::JacobiSVD<Eigen::MatrixXd> svd(jacobian, Eigen::ComputeThinU | Eigen::ComputeThinV);
   Eigen::VectorXd delta_theta = pseudoInverse(svd.matrixU(), svd.matrixV(), svd.singularValues().asDiagonal()) * eef_vel;
 
-  // Get current joint thetas
-  static const std::string PLANNING_GROUP = "arm";
-  std::vector<double> joint_values;
-  kinematic_state->copyJointGroupPositions(arm_group, joint_values);
+  if(gazebo) {
+    // Get current joint thetas
+    static const std::string PLANNING_GROUP = "arm";
+    std::vector<double> joint_values;
+    kinematic_state->copyJointGroupPositions(arm_group, joint_values);
 
-  // Add delta_theta to current thetas, send to ros_control
-  trajectory_msgs::JointTrajectory traj_msg;
+    // Add delta_theta to current thetas, send to ros_control
+    trajectory_msgs::JointTrajectory traj_msg;
 
-  traj_msg.header.stamp = ros::Time::now();
-  traj_msg.joint_names = arm_group->getVariableNames();
+    traj_msg.header.stamp = ros::Time::now();
+    traj_msg.joint_names = arm_group->getVariableNames();
 
-  trajectory_msgs::JointTrajectoryPoint point;
-  for(int i = 0; i < 6; i++) { // 6 joints
-    point.positions.push_back(joint_values[i] + delta_theta[i]);
-    point.velocities.push_back(0);
-    point.accelerations.push_back(0);
-    point.effort.push_back(0);
+    trajectory_msgs::JointTrajectoryPoint point;
+    for(int i = 0; i < 6; i++) { // 6 joints
+      point.positions.push_back(joint_values[i] + delta_theta[i]);
+      point.velocities.push_back(0);
+      point.accelerations.push_back(0);
+      point.effort.push_back(0);
 
-    point.time_from_start = ros::Duration(DURATION);
+      point.time_from_start = ros::Duration(DURATION);
+    }
+    traj_msg.points.push_back(point);
+
+    traj_pub.publish(traj_msg);
   }
-  traj_msg.points.push_back(point);
+  else {
+    if(!debug) {
+      // Send delta_thetas directly as velocity
+      joint_vel_msg.joint1 = delta_theta[0];
+      joint_vel_msg.joint2 = delta_theta[1];
+      joint_vel_msg.joint3 = delta_theta[2];
+      joint_vel_msg.joint4 = delta_theta[3];
+      joint_vel_msg.joint5 = delta_theta[4];
+      joint_vel_msg.joint6 = delta_theta[5];
+    }
+  }
+}
 
-  traj_pub.publish(traj_msg);
+void send_kinova_joint_vels(const ros::TimerEvent&) {
+  if(!gazebo) {
+    joint_vel_pub.publish(joint_vel_msg);
+  }
 }
 
 int main(int argc, char** argv){
   ros::init(argc, argv, "blitzcrank_traj_control");
 
   ros::NodeHandle nh("~");
-  ros::AsyncSpinner spinner(2);
+  ros::AsyncSpinner spinner(3);
   spinner.start();
+
+  if(nh.hasParam("gazebo")) {
+    nh.getParam("gazebo", gazebo);
+  }
+  
+  if(nh.hasParam("debug")) {
+    nh.getParam("debug", debug);
+  }
 
   // Load globals
   robot_model_loader::RobotModelLoader robot_model_loader("robot_description");
   robot_model::RobotModelPtr kinematic_model = robot_model_loader.getModel();
   arm_group = kinematic_model->getJointModelGroup("arm");
-  kinematic_state = robot_state::RobotStatePtr(new robot_state::RobotState(kinematic_model));
   move_group = new moveit::planning_interface::MoveGroupInterface("arm");
 
-  ros::Subscriber traj_sub = nh.subscribe("/blitzcrank/joint_trajectory_control", 1000, setTrajectory);
+  move_group->startStateMonitor();
 
   ros::Subscriber vel_sub = nh.subscribe("/blitzcrank/velocity_control", 1000, setTrajectoryFromVelocity);
 
   traj_pub = nh.advertise<trajectory_msgs::JointTrajectory>("/j2s6s300/effort_joint_trajectory_controller/command", 1000);
+
+  joint_vel_pub = nh.advertise<kinova_msgs::JointVelocity>("/kinova_driver/in/joint_velocity", 1000);
+
+  ros::Timer timer = nh.createTimer(ros::Duration(0.01), send_kinova_joint_vels); // 100Hz
 
   ros::waitForShutdown();
 

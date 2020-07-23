@@ -80,20 +80,70 @@ int main(int argc, char **argv)
     cylinder_pose.position.y = targetTransform.transform.translation.y;
     cylinder_pose.position.z = targetTransform.transform.translation.z;
 
+    // Ground plane
+ moveit_msgs::CollisionObject ground_collision_object;
+    ground_collision_object.header.frame_id = "base_link";
+    ground_collision_object.id = "ground_plane";
+
+    // Define a box
+    shape_msgs::SolidPrimitive box_primitive;
+    box_primitive.type = box_primitive.BOX;
+    box_primitive.dimensions.resize(3);
+    box_primitive.dimensions[0] = 1.7;
+    box_primitive.dimensions[1] = 1.7;
+    box_primitive.dimensions[2] = 0.1;
+
+    // Define a pose for the box (specified relative to frame_id).
+    geometry_msgs::Pose box_pose;
+    box_pose.position.x = 0;
+    box_pose.position.y = 0;
+    box_pose.position.z = -0.05;
+
+    // Side plane (to prevent arm extending too much to the side)
+    moveit_msgs::CollisionObject side_collision_object;
+    side_collision_object.header.frame_id = "base_link";
+    side_collision_object.id = "side_plane";
+
+    // Define a box
+    shape_msgs::SolidPrimitive side_primitive;
+    side_primitive.type = side_primitive.BOX;
+    side_primitive.dimensions.resize(3);
+    side_primitive.dimensions[0] = 1.5;
+    side_primitive.dimensions[1] = 0.1;
+    side_primitive.dimensions[2] = 1.5;
+
+    // Define a pose for the box (specified relative to frame_id).
+    geometry_msgs::Pose side_pose;
+    side_pose.position.x = 0;
+    side_pose.position.y = -0.85;
+    side_pose.position.z = 0.5;
+
+
     /// -- Planning scene monitor
     planning_scene_monitor::PlanningSceneMonitorPtr psm = planning_scene_monitor::PlanningSceneMonitorPtr(
     new planning_scene_monitor::PlanningSceneMonitor("robot_description"));
 
     planning_scene_monitor::LockedPlanningSceneRW planning_scene = planning_scene_monitor::LockedPlanningSceneRW(psm);
 
-     // Add cylinder as collision object
+    // Add cylinder as collision object
     collision_object.primitives.push_back(primitive);
     collision_object.primitive_poses.push_back(cylinder_pose);
     collision_object.operation = collision_object.ADD;
 
+    // Add ground plane as collision object
+    ground_collision_object.primitives.push_back(box_primitive);
+    ground_collision_object.primitive_poses.push_back(box_pose);
+    ground_collision_object.operation = ground_collision_object.ADD;
+
+    // Add side plane as collision object
+    side_collision_object.primitives.push_back(side_primitive);
+    side_collision_object.primitive_poses.push_back(side_pose);
+    side_collision_object.operation = side_collision_object.ADD;
+
     // by PlanningSceneInterface
-    moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
     planning_scene_interface.applyCollisionObject(collision_object);
+    planning_scene_interface.applyCollisionObject(ground_collision_object);
+    planning_scene_interface.applyCollisionObject(side_collision_object);
     
     // By planning scene monitor
     //moveit_msgs::PlanningScene planning_scene_msg;

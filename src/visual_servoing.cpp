@@ -8,7 +8,6 @@
 #include <stdlib.h>
 #include <cmath>
 
-bool gazebo = false;
 std::string target_frame;
 
 ros::Publisher vel_pub;
@@ -44,7 +43,7 @@ void visual_servo(const ros::TimerEvent&) {
 
   try{
     eefTransform = tfBuffer.lookupTransform("root", "ar_marker_0", ros::Time(0), ros::Duration(5.0));
-    toolTransform = tfBuffer.lookupTransform("marker0_rotated", "virtual_tool", ros::Time(0), ros::Duration(5.0));
+    //toolTransform = tfBuffer.lookupTransform("marker0_rotated", "virtual_tool", ros::Time(0), ros::Duration(5.0));
     targetTransform = tfBuffer.lookupTransform("root", target_frame, ros::Time(0), ros::Duration(5.0));
   }
   catch (tf2::TransformException &ex) {
@@ -58,7 +57,7 @@ void visual_servo(const ros::TimerEvent&) {
 
 
   tf::transformStampedMsgToTF(eefTransform, eefTf);
-  tf::transformStampedMsgToTF(toolTransform, toolTf);
+  //tf::transformStampedMsgToTF(toolTransform, toolTf);
   tf::transformStampedMsgToTF(targetTransform, targetTf);
 
   ROS_INFO("eefTf: X %f | Y %f | Z %f", eefTf.getOrigin().getX(), eefTf.getOrigin().getY(), eefTf.getOrigin().getZ());
@@ -70,14 +69,14 @@ void visual_servo(const ros::TimerEvent&) {
   targetTf.setRotation(tf::Quaternion(0, 0, 0, 1));
 
   // multiply first, then discard rotation
-  eefTf *= toolTf;
+  //eefTf *= toolTf;
   eefTf.setRotation(tf::Quaternion(0, 0, 0, 1));
 
   //errorTf = (eefTf*toolTf).inverseTimes(targetTf);
   errorTf = eefTf.inverseTimes(targetTf);
 
   //ROS_INFO("eefTf*toolTf: X %f | Y %f | Z %f", (eefTf*toolTf).getOrigin().getX(), (eefTf*toolTf).getOrigin().getY(), (eefTf*toolTf).getOrigin().getZ());
-  ROS_INFO("eefTf*toolTf: X %f | Y %f | Z %f", eefTf.getOrigin().getX(), eefTf.getOrigin().getY(), eefTf.getOrigin().getZ());
+  //ROS_INFO("eefTf*toolTf: X %f | Y %f | Z %f", eefTf.getOrigin().getX(), eefTf.getOrigin().getY(), eefTf.getOrigin().getZ());
 
   ROS_INFO("errorTf: X %f | Y %f | Z %f", errorTf.getOrigin().getX(), errorTf.getOrigin().getY(), errorTf.getOrigin().getZ());
 
@@ -87,43 +86,14 @@ void visual_servo(const ros::TimerEvent&) {
 
   ROS_INFO("----------");
 
-  // 2D
-  // Get 2D angle and error (xy plane)
-  // double rot_angle = atan2(targetTransform.transform.translation.y, targetTransform.transform.translation.x);
-  // double error = sqrt(pow(targetTransform.transform.translation.x, 2.0) + pow(targetTransform.transform.translation.y, 2.0));
-
-  // double speed = std::min(error, 0.01); // meters/sec
-
-  // // EEF velocity
-  // double eef_vel_x = speed*cos(rot_angle);
-  // double eef_vel_y = speed*sin(rot_angle);
-
-  // ROS_INFO("Sending x: %f,y: %f", eef_vel_x, eef_vel_y);
-
-  // if (!gazebo) {
-  //   // Real robot. TODO: send vels to driver (cartesian velocity control)
-  // }
-  // else {
-  //   // Simulated robot. send twist to joint_trajectory_control
-  //   geometry_msgs::Twist twist;
-  //   twist.linear.x = eef_vel_x;
-  //   twist.linear.y = eef_vel_y;
-
-  //   vel_pub.publish(twist);
-  // }
-
-  // 3D
-  // targetTransform is the gripper_marker->target_marker transform, rotated to base frame
-  // TODO should be gripper->target, based on fixed transforms between markers and real objects
-
   // Scale the transform vector, based on K
-  double K = 2; // TODO make this a ROS param
+  double K = 7; // TODO make this a ROS param
   errorTransform.translation.x *= K;
   errorTransform.translation.y *= K;
   errorTransform.translation.z *= K;
 
   // clamp the vector's magnitude (speed cap)
-  double SPEED_CAP = 0.1; // TODO make this a ROS param - Speed cap is 10cm/sec
+  double SPEED_CAP = 0.4; // TODO make this a ROS param - Speed cap is 10cm/sec
   double magnitude = sqrt( pow(targetTransform.transform.translation.x, 2.0) + pow(targetTransform.transform.translation.y, 2.0) + pow(targetTransform.transform.translation.z, 2.0) );
   if(magnitude > SPEED_CAP) { 
     // Divide transform by its magnitude : normalize it to length 1
@@ -139,19 +109,12 @@ void visual_servo(const ros::TimerEvent&) {
 
   ROS_INFO("Sending x: %f,y: %f,z: %f", errorTransform.translation.x, errorTransform.translation.y, errorTransform.translation.z);
 
-  if (!gazebo) {
-    // Real robot. TODO: send vels to driver (cartesian velocity control)
-  }
-  else {
-    // Simulated robot. send twist to joint_trajectory_control
-    geometry_msgs::Twist twist;
-    twist.linear.x = errorTransform.translation.x;
-    twist.linear.y = errorTransform.translation.y;
-    twist.linear.z = errorTransform.translation.z;
+  geometry_msgs::Twist twist;
+  twist.linear.x = errorTransform.translation.x;
+  twist.linear.y = errorTransform.translation.y;
+  twist.linear.z = errorTransform.translation.z;
 
-    vel_pub.publish(twist);
-  }
-
+  vel_pub.publish(twist);
 }
 
 int main(int argc, char** argv) {
@@ -161,10 +124,6 @@ int main(int argc, char** argv) {
   spinner.start();
 
   vel_pub = node_handle.advertise<geometry_msgs::Twist>("/blitzcrank/velocity_control", 1000);
-
-  if(node_handle.hasParam("gazebo")) {
-    node_handle.getParam("gazebo", gazebo);
-  }
 
   if(node_handle.hasParam("target_frame")) {
     node_handle.getParam("target_frame", target_frame);
