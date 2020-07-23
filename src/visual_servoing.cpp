@@ -18,31 +18,13 @@ geometry_msgs::Transform errorTransform;
 tf::StampedTransform targetTf, eefTf, toolTf;
 tf::Transform errorTf;
 
+double visual_servoing_k, visual_servoing_speed_cap;
+
 void visual_servo(const ros::TimerEvent&) {
-  /* Old way
-  try{
-    targetTransform = tfBuffer.lookupTransform("ar_marker_0", target_frame, ros::Time(0), ros::Duration(5.0));
-    //ROS_INFO("Target transform: X %f | Y %f | Z %f", targetTransform.transform.translation.x, targetTransform.transform.translation.y, targetTransform.transform.translation.z);
-
-    rootToGripperTransform = tfBuffer.lookupTransform("root", "ar_marker_0", ros::Time(0), ros::Duration(5.0)); // TODO this ar_marker_0 should probably be marker_0_link (think about it - also, this doesn't exist in the real robot, will need to be a static transform)
-    rootToGripperTransform.transform.translation = geometry_msgs::Vector3(); // We only want rotation
-  }
-  catch (tf2::TransformException &ex) {
-    ROS_ERROR("Error getting (eef -> target) transform: %s",ex.what());
-    ros::shutdown();
-    return;
-  }
-
-  // Transform the pose to the root frame
-  tf2::doTransform(targetTransform, targetTransform, rootToGripperTransform);
-  //ROS_INFO("Target transform (root frame): X %f | Y %f | Z %f", targetTransform.transform.translation.x, targetTransform.transform.translation.y, targetTransform.transform.translation.z);
-  */
-
-  // New way, with differences
   ROS_INFO("----------");
 
   try{
-    eefTransform = tfBuffer.lookupTransform("root", "ar_marker_0", ros::Time(0), ros::Duration(5.0));
+    eefTransform = tfBuffer.lookupTransform("root", "end_effector_marker", ros::Time(0), ros::Duration(5.0));
     //toolTransform = tfBuffer.lookupTransform("marker0_rotated", "virtual_tool", ros::Time(0), ros::Duration(5.0));
     targetTransform = tfBuffer.lookupTransform("root", target_frame, ros::Time(0), ros::Duration(5.0));
   }
@@ -87,24 +69,22 @@ void visual_servo(const ros::TimerEvent&) {
   ROS_INFO("----------");
 
   // Scale the transform vector, based on K
-  double K = 7; // TODO make this a ROS param
-  errorTransform.translation.x *= K;
-  errorTransform.translation.y *= K;
-  errorTransform.translation.z *= K;
+  errorTransform.translation.x *= visual_servoing_k;
+  errorTransform.translation.y *= visual_servoing_k;
+  errorTransform.translation.z *= visual_servoing_k;
 
   // clamp the vector's magnitude (speed cap)
-  double SPEED_CAP = 0.4; // TODO make this a ROS param - Speed cap is 10cm/sec
   double magnitude = sqrt( pow(targetTransform.transform.translation.x, 2.0) + pow(targetTransform.transform.translation.y, 2.0) + pow(targetTransform.transform.translation.z, 2.0) );
-  if(magnitude > SPEED_CAP) { 
+  if(magnitude > visual_servoing_speed_cap) { 
     // Divide transform by its magnitude : normalize it to length 1
     errorTransform.translation.x /= magnitude;
     errorTransform.translation.y /= magnitude;
     errorTransform.translation.z /= magnitude;
 
     // Multiply by speed cap
-    errorTransform.translation.x *= SPEED_CAP;
-    errorTransform.translation.y *= SPEED_CAP;
-    errorTransform.translation.z *= SPEED_CAP;
+    errorTransform.translation.x *= visual_servoing_speed_cap;
+    errorTransform.translation.y *= visual_servoing_speed_cap;
+    errorTransform.translation.z *= visual_servoing_speed_cap;
   }
 
   ROS_INFO("Sending x: %f,y: %f,z: %f", errorTransform.translation.x, errorTransform.translation.y, errorTransform.translation.z);
@@ -132,6 +112,22 @@ int main(int argc, char** argv) {
     ros::shutdown();
   }
   ROS_INFO("Target frame: %s", target_frame.c_str());
+
+  if(node_handle.hasParam("visual_servoing_k")) {
+    node_handle.getParam("visual_servoing_k", visual_servoing_k);
+  } else {
+    ROS_ERROR("'visual_servoing_k' param not given");
+    ros::shutdown();
+  }
+  ROS_INFO("Visual-servoing K: %d", visual_servoing_k);
+
+  if(node_handle.hasParam("visual_servoing_speed_cap")) {
+    node_handle.getParam("visual_servoing_speed_cap", visual_servoing_speed_cap);
+  } else {
+    ROS_ERROR("'visual_servoing_speed_cap' param not given");
+    ros::shutdown();
+  }
+  ROS_INFO("Visual-servoing speed cap: %d", visual_servoing_speed_cap);
 
   tf2_ros::TransformListener tfListener(tfBuffer);
 

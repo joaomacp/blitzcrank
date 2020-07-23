@@ -4,31 +4,49 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
-bool acquired_both_transforms = false;
+bool acquired_target = false;
+bool acquired_end_effector = false;
 
-std::string target_frame, end_effector_frame, cam_frame;
+std::string input_target_frame, input_end_effector_frame, cam_frame;
 
 tf2_ros::Buffer tfBuffer;
-geometry_msgs::TransformStamped targetTransform, endEffectorTransform;
+geometry_msgs::TransformStamped inputTargetTransform, outputTargetTransform, inputEndEffectorTransform, outputEndEffectorTransform;
 
 void republish(tf2_ros::TransformBroadcaster broadcaster) {
   try{
-    targetTransform = tfBuffer.lookupTransform(cam_frame, target_frame, ros::Time(0));
-    endEffectorTransform = tfBuffer.lookupTransform(cam_frame, end_effector_frame, ros::Time(0));
+    inputTargetTransform = tfBuffer.lookupTransform(cam_frame, input_target_frame, ros::Time(0));
+    acquired_target = true;
   }
   catch (tf2::TransformException &ex) {
     ROS_WARN("%s",ex.what());
-    if(!acquired_both_transforms) {
+    if(!acquired_target) {
       ros::Duration(1.0).sleep();
-      return;
     }
   }
 
-  acquired_both_transforms = true;
+  try{
+    inputEndEffectorTransform = tfBuffer.lookupTransform(cam_frame, input_end_effector_frame, ros::Time(0));
+    acquired_end_effector = true;
+  }
+  catch (tf2::TransformException &ex) {
+    ROS_WARN("%s",ex.what());
+    if(!acquired_end_effector) {
+      ros::Duration(1.0).sleep();
+    }
+  }
+
   // Republish transforms, based on the last time they were acquired
-  broadcaster.sendTransform(targetTransform);
-  broadcaster.sendTransform(endEffectorTransform);
-  ros::Duration(1.0).sleep();
+  if(acquired_target) {
+    outputTargetTransform.header.stamp = ros::Time::now();
+    outputTargetTransform.transform = inputTargetTransform.transform;
+    broadcaster.sendTransform(outputTargetTransform);
+  }
+
+  if(acquired_end_effector) {
+    outputEndEffectorTransform.header.stamp = ros::Time::now();
+    outputEndEffectorTransform.transform = inputEndEffectorTransform.transform;
+    broadcaster.sendTransform(outputEndEffectorTransform);
+  }
 }
 
 int main(int argc, char** argv) {
@@ -43,26 +61,29 @@ int main(int argc, char** argv) {
     ROS_ERROR("'cam_frame' param not given");
     ros::shutdown();
   }
-  ROS_INFO("Camera frame: %s", cam_frame.c_str());
 
   if(node_handle.hasParam("target_frame")) {
-    node_handle.getParam("target_frame", target_frame);
+    node_handle.getParam("target_frame", input_target_frame);
   } else {
     ROS_ERROR("'target_frame' param not given");
     ros::shutdown();
   }
-  ROS_INFO("Target frame: %s", target_frame.c_str());
 
   if(node_handle.hasParam("end_effector_frame")) {
-    node_handle.getParam("end_effector_frame", end_effector_frame);
+    node_handle.getParam("end_effector_frame", input_end_effector_frame);
   } else {
     ROS_ERROR("'end_effector_frame' param not given");
     ros::shutdown();
   }
-  ROS_INFO("End-effector frame: %s", end_effector_frame.c_str());
 
   tf2_ros::TransformListener tfListener(tfBuffer);
   tf2_ros::TransformBroadcaster tfBroadcaster;
+
+  outputTargetTransform.header.frame_id = cam_frame;
+  outputTargetTransform.child_frame_id = "target_marker";
+
+  outputEndEffectorTransform.header.frame_id = cam_frame;
+  outputEndEffectorTransform.child_frame_id = "end_effector_marker";
 
   while(node_handle.ok()) {
     republish(tfBroadcaster);
