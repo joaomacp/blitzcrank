@@ -13,9 +13,7 @@
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 
-const int ATTEMPTS = 10;
-const double TIMEOUT = 0.1;
-const double DURATION = 0.5; // Assuming 2Hz Visual-Servoing (only used if gazebo=true)
+const double DURATION = 0.5; // Assuming 2Hz Visual-Servoing (only used if gazebo=true, for Joint Trajectory Controller)
 robot_state::JointModelGroup* arm_group;
 robot_state::RobotStatePtr kinematic_state;
 
