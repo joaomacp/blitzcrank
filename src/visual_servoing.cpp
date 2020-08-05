@@ -15,7 +15,7 @@ ros::Publisher vel_pub;
 tf2_ros::Buffer tfBuffer;
 geometry_msgs::TransformStamped targetTransform, rootToGripperTransform, eefMarkerVisionTransform, eefMarkerToEefTransform;
 geometry_msgs::Transform errorTransform;
-tf::StampedTransform targetTf, vTf, mTf;
+tf::StampedTransform targetTf, vTf;
 tf::Transform errorTf;
 
 double visual_servoing_k, visual_servoing_speed_cap;
@@ -24,8 +24,7 @@ void visual_servo(const ros::TimerEvent&) {
   ROS_INFO("----------");
 
   try{
-    eefMarkerVisionTransform = tfBuffer.lookupTransform("root", "end_effector_marker", ros::Time(0), ros::Duration(5.0));
-    eefMarkerToEefTransform = tfBuffer.lookupTransform("marker0_link", "kinova_end_effector", ros::Time(0), ros::Duration(5.0));
+    eefMarkerVisionTransform = tfBuffer.lookupTransform("root", "grasp_tool", ros::Time(0), ros::Duration(5.0));
     targetTransform = tfBuffer.lookupTransform("root", target_frame, ros::Time(0), ros::Duration(5.0));
   }
   catch (tf2::TransformException &ex) {
@@ -34,12 +33,10 @@ void visual_servo(const ros::TimerEvent&) {
     return;
   }
   ROS_INFO("eefMarkerVisionTransform: X %f | Y %f | Z %f", eefMarkerVisionTransform.transform.translation.x, eefMarkerVisionTransform.transform.translation.y, eefMarkerVisionTransform.transform.translation.z);
-  ROS_INFO("eefMarkerToEefTransform: X %f | Y %f | Z %f", eefMarkerToEefTransform.transform.translation.x, eefMarkerToEefTransform.transform.translation.y, eefMarkerToEefTransform.transform.translation.z);
   ROS_INFO("targetTransform: X %f | Y %f | Z %f", targetTransform.transform.translation.x, targetTransform.transform.translation.y, targetTransform.transform.translation.z);
 
 
   tf::transformStampedMsgToTF(eefMarkerVisionTransform, vTf); // vision
-  tf::transformStampedMsgToTF(eefMarkerToEefTransform, mTf); // measurement
   tf::transformStampedMsgToTF(targetTransform, targetTf);
 
   ROS_INFO("vTf: X %f | Y %f | Z %f", vTf.getOrigin().getX(), vTf.getOrigin().getY(), vTf.getOrigin().getZ());
@@ -51,14 +48,11 @@ void visual_servo(const ros::TimerEvent&) {
   targetTf.setRotation(tf::Quaternion(0, 0, 0, 1));
 
   // multiply first, then discard rotation
-  vTf *= mTf;
+  //vTf = mTf*vTf;
   vTf.setRotation(tf::Quaternion(0, 0, 0, 1));
 
   //errorTf = (vTf*mTf).inverseTimes(targetTf);
   errorTf = vTf.inverseTimes(targetTf);
-
-  //ROS_INFO("vTf*mTf: X %f | Y %f | Z %f", (vTf*mTf).getOrigin().getX(), (vTf*mTf).getOrigin().getY(), (vTf*mTf).getOrigin().getZ());
-  //ROS_INFO("vTf*mTf: X %f | Y %f | Z %f", vTf.getOrigin().getX(), vTf.getOrigin().getY(), vTf.getOrigin().getZ());
 
   ROS_INFO("errorTf: X %f | Y %f | Z %f", errorTf.getOrigin().getX(), errorTf.getOrigin().getY(), errorTf.getOrigin().getZ());
 

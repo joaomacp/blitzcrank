@@ -13,7 +13,4 @@
         <param name="target_frame" value="ar_marker_3" />
     </node>
 
-    <!-- TODO: use the yaml file -->
-    <!-- TODO first: measure this in robot -->
-    <node pkg="tf" type="static_transform_publisher" name="virtual_tool_broadcaster" args="0 0 -0.12 0 0 0 kinova_end_effector marker0_link 100" />
 </launch>
