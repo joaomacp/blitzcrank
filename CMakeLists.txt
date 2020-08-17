@@ -7,6 +7,7 @@ find_package(catkin REQUIRED
     roscpp
     rospy
     std_msgs
+    std_srvs
     geometry_msgs
     kinova_msgs
     moveit_msgs
@@ -40,6 +41,7 @@ catkin_package(
     tf2
     tf2_ros
     std_msgs
+    std_srvs
     geometry_msgs
     kinova_msgs
     moveit_msgs
@@ -60,7 +62,7 @@ add_executable(vertical_planning_scene src/vertical_planning_scene.cpp)
 
 add_executable(vertical_approach_target src/vertical_approach_target.cpp)
 
-add_executable(horizontal_approach_target src/horizontal_approach_target.cpp)
+add_executable(pregrasp_service src/pregrasp_service.cpp)
 
 add_executable(joint_trajectory_control src/joint_trajectory_control.cpp)
 add_executable(ar_track_republish src/ar_track_republish.cpp)
@@ -78,8 +80,8 @@ target_link_libraries(joint_trajectory_control ${catkin_LIBRARIES})
 target_link_libraries(ar_track_republish ${catkin_LIBRARIES})
 target_link_libraries(visual_servoing ${catkin_LIBRARIES})
 
-target_link_libraries(horizontal_approach_target ${catkin_LIBRARIES})
-add_dependencies(horizontal_approach_target ${PROJECT_NAME}_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
+target_link_libraries(pregrasp_service ${catkin_LIBRARIES})
+add_dependencies(pregrasp_service ${PROJECT_NAME}_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
 
 target_link_libraries(gazebo_interface ${catkin_LIBRARIES})
 target_link_libraries(test_tf_broadcaster ${catkin_LIBRARIES})
@@ -90,7 +92,7 @@ target_link_libraries(test_tf_broadcaster ${catkin_LIBRARIES})
 
 install(TARGETS vertical_planning_scene DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 install(TARGETS vertical_approach_target DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
-install(TARGETS horizontal_approach_target DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+install(TARGETS pregrasp_service DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 install(TARGETS joint_trajectory_control DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 install(TARGETS ar_track_republish DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 install(TARGETS visual_servoing DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})

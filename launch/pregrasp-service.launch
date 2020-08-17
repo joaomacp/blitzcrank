@@ -7,7 +7,7 @@
     <arg name="arm_name" default="kinova" />
 
     <remap from="/joint_states" to="/$(arg arm_name)/joint_states" />
-    <node pkg="blitzcrank" type="horizontal_approach_target" name="horizontal_approach_target" output="screen">
+    <node pkg="blitzcrank" type="pregrasp_service" name="pregrasp_service" output="screen">
         <param name="gazebo" value="$(arg gazebo)" />
         <param name="root_frame" value="$(arg root_frame)" />
         <param name="target_frame" value="target_marker" />

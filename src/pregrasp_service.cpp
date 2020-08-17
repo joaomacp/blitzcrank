@@ -13,9 +13,10 @@
 #include <moveit_msgs/CollisionObject.h>
 
 #include <blitzcrank/GetTargetAlignment.h>
+# include <std_srvs/Trigger.h>
 
 /**
- * Approach target object, gripper horizontal in front of target
+ * Move to a pre-grasp pose - gripper horizontal in front of target
 **/
 
 const double APPROACH_DISTANCE = 0.1;
@@ -23,6 +24,8 @@ const double APPROACH_DISTANCE = 0.1;
 bool gazebo = false;
 std::string target_frame;
 std::string root_frame;
+
+ros::ServiceClient getAlignmentClient;
 
 // rosrun kinova_demo fingers_action_client.py j2s6s300 percent 75 75 75
 void move_fingers(int percent_closed) {
@@ -157,36 +160,13 @@ bool add_collision_objects() {
   return true;
 }
 
-int main(int argc, char** argv) {
-  ros::init(argc, argv, "horizontal_approach_target");
-  ros::NodeHandle node_handle("~");
-  ros::AsyncSpinner spinner(1);
-  spinner.start();
-
-  if(node_handle.hasParam("gazebo")) {
-    node_handle.getParam("gazebo", gazebo);
-  }
-
-  if(node_handle.hasParam("root_frame")) {
-    node_handle.getParam("root_frame", root_frame);
-  } else {
-    ROS_ERROR("'root_frame' param not given");
-    ros::shutdown();
-  }
-  ROS_INFO("Root frame: %s", root_frame.c_str());
-
-  // TODO use 'target_marker', published by ar_track_republish - no need for param
-  if(node_handle.hasParam("target_frame")) {
-    node_handle.getParam("target_frame", target_frame);
-  } else {
-    ROS_ERROR("'target_frame' param not given");
-    ros::shutdown();
-  }
-  ROS_INFO("Target frame: %s", target_frame.c_str());
-
+bool pregrasp(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res) {
   // Add collision objects to moveit scene: floor plane, side plane, target object (to make hole in octomap)
-  add_collision_objects();
-  // TODO check result of above, if false - return "failed" response
+  if (!add_collision_objects()) {
+    res.success = false;
+    res.message = "Error adding collision objects - probably failed to obtain target transform";
+    return true;
+  }
 
   static const std::string PLANNING_GROUP = "arm";
 
@@ -203,8 +183,9 @@ int main(int argc, char** argv) {
   }
   catch (tf2::TransformException &ex) {
     ROS_ERROR("Error getting (root -> target) transform: %s",ex.what());
-    ros::shutdown();
-    return 0;
+    res.success = false;
+    res.message = "Error obtaining target transform";
+    return true;
   }
 
   const double VEL_SCALING = 0.35; // TODO: use a param?
@@ -220,13 +201,12 @@ int main(int argc, char** argv) {
   // Target arm rotation will be parallel to xy (ground) plane, and have an angle pointing from robot base XY -> target XY
   // double rot_angle = atan2(targetTransform.transform.translation.y, targetTransform.transform.translation.x) - 3.14; // TODO normalize
 
-  // FOR HORIZONTAL BASE IN MBOT: xz instead of xy
   double rot_angle = atan2(targetTransform.transform.translation.y, targetTransform.transform.translation.x) - 3.14; // TODO normalize
   // Add manipulator's yaw angle
   rot_angle += YAW_ANGLE;
 
   tf2::Quaternion q_rot, q_rot_2, q_rot_3, q_new;
-  //double r=0, p=-0, y=rot_angle;
+
   double r=0, p=1.57, y=0;
   q_rot.setRPY(r, p, y);
 
@@ -239,16 +219,10 @@ int main(int argc, char** argv) {
   q_new.normalize();
 
   tf2::convert(q_new, target_pose.orientation);
- 
- // vertical arm:
- // target_pose.position.x = targetTransform.transform.translation.x + APPROACH_DISTANCE*cos(rot_angle);
- // target_pose.position.y = targetTransform.transform.translation.y + APPROACH_DISTANCE*sin(rot_angle);
- // target_pose.position.z = targetTransform.transform.translation.z + 0.05;
   
-// horizontal arm (mbot)
- target_pose.position.x = targetTransform.transform.translation.x + APPROACH_DISTANCE*cos(rot_angle);
- target_pose.position.y = targetTransform.transform.translation.y + APPROACH_DISTANCE*sin(rot_angle);
- target_pose.position.z = targetTransform.transform.translation.z + 0.08;
+  target_pose.position.x = targetTransform.transform.translation.x + APPROACH_DISTANCE*cos(rot_angle);
+  target_pose.position.y = targetTransform.transform.translation.y + APPROACH_DISTANCE*sin(rot_angle);
+  target_pose.position.z = targetTransform.transform.translation.z + 0.08;
 
   move_group.setPoseTarget(target_pose);
 
@@ -256,7 +230,15 @@ int main(int argc, char** argv) {
 
   moveit::planning_interface::MoveGroupInterface::Plan my_plan;
   bool success = (move_group.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
-  ROS_INFO("Pose goal %s", success ? "SUCCESS" : "FAILED");
+  if(success) {
+    ROS_INFO("Pose goal SUCCESS");
+  }
+  else {
+    ROS_INFO("Pose goal FAILURE");
+    res.success = false;
+    res.message = "Failed to plan the pregrasp motion";
+    return true;
+  }
 
   // Moving to a pose goal
   // ^^^^^^^^^^^^^^^^^^^^^
@@ -269,7 +251,6 @@ int main(int argc, char** argv) {
     ros::Duration(2).sleep();
 
     // Call service to evaluate target alignment
-    ros::ServiceClient getAlignmentClient = node_handle.serviceClient<blitzcrank::GetTargetAlignment>("/gazebo_interface/get_target_alignment");
     blitzcrank::GetTargetAlignment get_target_alignment;
     get_target_alignment.request.parent = "coke_marker::marker_link";
     get_target_alignment.request.child = "j2s6s300::j2s6s300_link_finger_tip_1";
@@ -287,9 +268,40 @@ int main(int argc, char** argv) {
   // Since we set the start state we have to clear it before planning other paths
   move_group.setStartStateToCurrentState();
 
-  // OPEN FINGERS //
-  //move_fingers(0); - TODO do this with PoseVelocityWithFingers
+  res.success = true;
+  return true;
+}
 
-  ros::shutdown();
+int main(int argc, char** argv) {
+  ros::init(argc, argv, "pregrasp_service");
+  ros::NodeHandle node_handle("~");
+  ros::AsyncSpinner spinner(1);
+  spinner.start();
+
+  if(node_handle.hasParam("gazebo")) {
+    node_handle.getParam("gazebo", gazebo);
+  }
+
+  if(node_handle.hasParam("root_frame")) {
+    node_handle.getParam("root_frame", root_frame);
+  } else {
+    ROS_ERROR("'root_frame' param not given");
+    ros::shutdown();
+  }
+  ROS_INFO("Root frame: %s", root_frame.c_str());
+
+  if(node_handle.hasParam("target_frame")) {
+    node_handle.getParam("target_frame", target_frame);
+  } else {
+    ROS_ERROR("'target_frame' param not given");
+    ros::shutdown();
+  }
+  ROS_INFO("Target frame: %s", target_frame.c_str());
+
+  getAlignmentClient = node_handle.serviceClient<blitzcrank::GetTargetAlignment>("/gazebo_interface/get_target_alignment");
+
+  ros::ServiceServer pregrasp_server = node_handle.advertiseService("/kinova_manipulation/pregrasp", pregrasp);
+
+  ros::spin();
   return 0;
 }
