@@ -104,9 +104,9 @@ bool visual_servo(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &
 
     geometry_msgs::TwistStamped twist;
     twist.header.stamp = ros::Time::now();
-    twist.linear.x = errorTransform.translation.x;
-    twist.linear.y = errorTransform.translation.y;
-    twist.linear.z = errorTransform.translation.z;
+    twist.twist.linear.x = errorTransform.translation.x;
+    twist.twist.linear.y = errorTransform.translation.y;
+    twist.twist.linear.z = errorTransform.translation.z;
 
     vel_pub.publish(twist);
 

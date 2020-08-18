@@ -38,21 +38,21 @@ Eigen::MatrixXd pseudoInverse(const Eigen::MatrixXd& u_matrix, const Eigen::Matr
  Inverse jacobian adapted from: https://github.com/UTNuclearRoboticsPublic/jog_arm/blob/kinetic/jog_arm/src/jog_arm/jog_arm_server.cpp
 */
 void setTrajectoryFromVelocity(geometry_msgs::TwistStamped msg) {
-  latest_timestamp = ros::Time(msg.header.stamp.secs, msg.header.stamp.nsecs);
+  latest_timestamp = ros::Time(msg.header.stamp);
 
   // end-effector velocity vector
   Eigen::VectorXd eef_vel(6);
-  eef_vel[0] = msg.linear.x;
-  eef_vel[1] = msg.linear.y;
-  eef_vel[2] = msg.linear.z;
-  eef_vel[3] = msg.angular.x;
-  eef_vel[4] = msg.angular.y;
-  eef_vel[5] = msg.angular.z;
+  eef_vel[0] = msg.twist.linear.x;
+  eef_vel[1] = msg.twist.linear.y;
+  eef_vel[2] = msg.twist.linear.z;
+  eef_vel[3] = msg.twist.angular.x;
+  eef_vel[4] = msg.twist.angular.y;
+  eef_vel[5] = msg.twist.angular.z;
 
   kinematic_state = move_group->getCurrentState();
 
   // Calculate delta_theta
-  Eigen::MatrixXd jacobian = kinematic_stajoint_vel_msgte->getJacobian(arm_group);
+  Eigen::MatrixXd jacobian = kinematic_state->getJacobian(arm_group);
   Eigen::JacobiSVD<Eigen::MatrixXd> svd(jacobian, Eigen::ComputeThinU | Eigen::ComputeThinV);
   Eigen::VectorXd delta_theta = pseudoInverse(svd.matrixU(), svd.matrixV(), svd.singularValues().asDiagonal()) * eef_vel;
 
@@ -101,7 +101,7 @@ void send_kinova_joint_vels(const ros::TimerEvent&) {
 }
 
 void check_timestamp(const ros::TimerEvent&) {
-  servoing = (ros::Time::now() - latest_timestamp < 1);
+  servoing = (ros::Time::now() - latest_timestamp < ros::Duration(1));
 }
 
 int main(int argc, char** argv){
