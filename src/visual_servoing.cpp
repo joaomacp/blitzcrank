@@ -1,7 +1,7 @@
 #include <ros/ros.h>
 #include <std_srvs/Trigger.h>
 #include <geometry_msgs/Pose.h>
-#include <geometry_msgs/Twist.h>
+#include <geometry_msgs/TwistStamped.h>
 #include <tf/transform_datatypes.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2/LinearMath/Quaternion.h>
@@ -71,6 +71,12 @@ bool visual_servo(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &
     if(magnitude < 0.1) {
       // Converged
       ROS_INFO("Visual servoing finished: reached desired distance to goal.");
+
+      // Send one last message: set velocity to 0
+      geometry_msgs::TwistStamped twist;
+      twist.header.stamp = ros::Time::now();
+      vel_pub.publish(twist);
+
       res.success = true;
       return true;
     }
@@ -96,7 +102,8 @@ bool visual_servo(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &
 
     ROS_INFO("Sending x: %f,y: %f,z: %f", errorTransform.translation.x, errorTransform.translation.y, errorTransform.translation.z);
 
-    geometry_msgs::Twist twist;
+    geometry_msgs::TwistStamped twist;
+    twist.header.stamp = ros::Time::now();
     twist.linear.x = errorTransform.translation.x;
     twist.linear.y = errorTransform.translation.y;
     twist.linear.z = errorTransform.translation.z;
@@ -113,7 +120,7 @@ int main(int argc, char** argv) {
   ros::AsyncSpinner spinner(2);
   spinner.start();
 
-  vel_pub = node_handle.advertise<geometry_msgs::Twist>("/blitzcrank/velocity_control", 1000);
+  vel_pub = node_handle.advertise<geometry_msgs::TwistStamped>("/blitzcrank/velocity_control", 1000);
 
   if(node_handle.hasParam("target_frame")) {
     node_handle.getParam("target_frame", target_frame);
@@ -145,6 +152,6 @@ int main(int argc, char** argv) {
 
   ros::ServiceServer vs_server = node_handle.advertiseService("/kinova_manipulation/visual_servo", visual_servo);
 
-  ros::waitForShutdown();
+  ros::spin();
   return 0;
 }

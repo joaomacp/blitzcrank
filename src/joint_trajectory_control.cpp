@@ -1,7 +1,7 @@
 #include <ros/ros.h>
 
 #include <geometry_msgs/Pose.h>
-#include <geometry_msgs/Twist.h>
+#include <geometry_msgs/TwistStamped.h>
 #include <trajectory_msgs/JointTrajectory.h>
 #include <trajectory_msgs/JointTrajectoryPoint.h>
 #include <kinova_msgs/JointVelocity.h>
@@ -26,6 +26,9 @@ ros::Publisher traj_pub, joint_vel_pub;
 
 kinova_msgs::JointVelocity joint_vel_msg;
 
+ros::Time latest_timestamp;
+bool servoing = false;
+
 Eigen::MatrixXd pseudoInverse(const Eigen::MatrixXd& u_matrix, const Eigen::MatrixXd& v_matrix, const Eigen::MatrixXd& s_diagonals) {
   return v_matrix * s_diagonals.inverse() * u_matrix.transpose();
 }
@@ -34,8 +37,8 @@ Eigen::MatrixXd pseudoInverse(const Eigen::MatrixXd& u_matrix, const Eigen::Matr
   Use inverse jacobian to apply joint goal (sent to ros_control) based on the given end-effector velocity
  Inverse jacobian adapted from: https://github.com/UTNuclearRoboticsPublic/jog_arm/blob/kinetic/jog_arm/src/jog_arm/jog_arm_server.cpp
 */
-void setTrajectoryFromVelocity(geometry_msgs::Twist msg) {
-  // Based on Gazebo tests, the gripper has a tendency to move down
+void setTrajectoryFromVelocity(geometry_msgs::TwistStamped msg) {
+  latest_timestamp = ros::Time(msg.header.stamp.secs, msg.header.stamp.nsecs);
 
   // end-effector velocity vector
   Eigen::VectorXd eef_vel(6);
@@ -49,7 +52,7 @@ void setTrajectoryFromVelocity(geometry_msgs::Twist msg) {
   kinematic_state = move_group->getCurrentState();
 
   // Calculate delta_theta
-  Eigen::MatrixXd jacobian = kinematic_state->getJacobian(arm_group);
+  Eigen::MatrixXd jacobian = kinematic_stajoint_vel_msgte->getJacobian(arm_group);
   Eigen::JacobiSVD<Eigen::MatrixXd> svd(jacobian, Eigen::ComputeThinU | Eigen::ComputeThinV);
   Eigen::VectorXd delta_theta = pseudoInverse(svd.matrixU(), svd.matrixV(), svd.singularValues().asDiagonal()) * eef_vel;
 
@@ -79,7 +82,7 @@ void setTrajectoryFromVelocity(geometry_msgs::Twist msg) {
     traj_pub.publish(traj_msg);
   }
   else {
-    if(!debug) {
+    if(!debug && servoing) {
       // Send delta_thetas directly as velocity
       joint_vel_msg.joint1 = delta_theta[0];
       joint_vel_msg.joint2 = delta_theta[1];
@@ -92,9 +95,13 @@ void setTrajectoryFromVelocity(geometry_msgs::Twist msg) {
 }
 
 void send_kinova_joint_vels(const ros::TimerEvent&) {
-  if(!gazebo) {
+  if(!gazebo && !debug && servoing) {
     joint_vel_pub.publish(joint_vel_msg);
   }
+}
+
+void check_timestamp(const ros::TimerEvent&) {
+  servoing = (ros::Time::now() - latest_timestamp < 1);
 }
 
 int main(int argc, char** argv){
@@ -126,9 +133,10 @@ int main(int argc, char** argv){
 
   joint_vel_pub = nh.advertise<kinova_msgs::JointVelocity>("/kinova_driver/in/joint_velocity", 1000);
 
-  ros::Timer timer = nh.createTimer(ros::Duration(0.01), send_kinova_joint_vels); // 100Hz
+  ros::Timer vs_timer = nh.createTimer(ros::Duration(0.01), send_kinova_joint_vels); // 100Hz
+
+  ros::Timer check_stamp_timer = nh.createTimer(ros::Duration(1), check_timestamp); // 1Hz
 
   ros::waitForShutdown();
-
   return 0;
 }
