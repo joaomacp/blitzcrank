@@ -13,7 +13,7 @@
 #include <moveit_msgs/CollisionObject.h>
 
 #include <blitzcrank/GetTargetAlignment.h>
-# include <std_srvs/Trigger.h>
+#include <std_srvs/Trigger.h>
 
 /**
  * Move to a pre-grasp pose - gripper horizontal in front of target
@@ -302,6 +302,6 @@ int main(int argc, char** argv) {
 
   ros::ServiceServer pregrasp_server = node_handle.advertiseService("/kinova_manipulation/pregrasp", pregrasp);
 
-  ros::spin();
+  ros::waitForShutdown();
   return 0;
 }
