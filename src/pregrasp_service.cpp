@@ -302,6 +302,6 @@ int main(int argc, char** argv) {
 
   ros::ServiceServer pregrasp_server = node_handle.advertiseService("/kinova_manipulation/pregrasp", pregrasp);
 
-  ros::waitForShutdown();
+  ros::spin();
   return 0;
 }

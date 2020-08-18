@@ -21,9 +21,9 @@ tf::Transform errorTf;
 
 double visual_servoing_k, visual_servoing_speed_cap;
 
-ros::Rate vs_rate(20); // 20Hz
-
 bool visual_servo(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res) {
+  ros::Rate vs_rate(20); // 20Hz
+
   while(true) {
     ROS_INFO("----------");
 
@@ -68,7 +68,7 @@ bool visual_servo(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &
     ROS_INFO("----------");
 
     double magnitude = sqrt( pow(errorTransform.translation.x, 2.0) + pow(errorTransform.translation.y, 2.0) + pow(errorTransform.translation.z, 2.0) );
-    if(magnitude < 0.1) {
+    if(magnitude < 0.05) {
       // Converged
       ROS_INFO("Visual servoing finished: reached desired distance to goal.");
 

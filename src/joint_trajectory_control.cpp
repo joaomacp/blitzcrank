@@ -127,7 +127,7 @@ int main(int argc, char** argv){
 
   move_group->startStateMonitor();
 
-  ros::Subscriber vel_sub = nh.subscribe("/blitzcrank/velocity_control", 1000, setTrajectoryFromVelocity);
+  ros::Subscriber vel_sub = nh.subscribe("/blitzcrank/velocity_control", 1, setTrajectoryFromVelocity);
 
   traj_pub = nh.advertise<trajectory_msgs::JointTrajectory>("/j2s6s300/effort_joint_trajectory_controller/command", 1000);
 
