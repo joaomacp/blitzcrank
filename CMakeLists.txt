@@ -21,6 +21,7 @@ find_package(catkin REQUIRED
     geometric_shapes
     tf2
     tf2_ros
+    smach
 )
 
 catkin_python_setup()
@@ -50,6 +51,7 @@ catkin_package(
     moveit_ros_perception
     moveit_commander
     interactive_markers
+    smach
 )
 
 ###########
