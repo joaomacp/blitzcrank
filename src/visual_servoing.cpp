@@ -19,7 +19,7 @@ geometry_msgs::Transform errorTransform;
 tf::StampedTransform targetTf, vTf;
 tf::Transform errorTf;
 
-double visual_servoing_k, visual_servoing_speed_cap;
+double visual_servoing_k, visual_servoing_speed_cap, visual_servoing_stopping_distance;
 
 bool visual_servo(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res) {
   ros::Rate vs_rate(20); // 20Hz
@@ -68,7 +68,7 @@ bool visual_servo(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &
     ROS_INFO("----------");
 
     double magnitude = sqrt( pow(errorTransform.translation.x, 2.0) + pow(errorTransform.translation.y, 2.0) + pow(errorTransform.translation.z, 2.0) );
-    if(magnitude < 0.05) {
+    if(magnitude < visual_servoing_stopping_distance) {
       // Converged
       ROS_INFO("Visual servoing finished: reached desired distance to goal.");
 
@@ -145,6 +145,14 @@ int main(int argc, char** argv) {
     ros::shutdown();
   }
   ROS_INFO("Visual-servoing speed cap: %f", visual_servoing_speed_cap);
+
+  if(node_handle.hasParam("visual_servoing_stopping_distance")) {
+    node_handle.getParam("visual_servoing_stopping_distance", visual_servoing_stopping_distance);
+  } else {
+    ROS_ERROR("'visual_servoing_stopping_distance' param not given");
+    ros::shutdown();
+  }
+  ROS_INFO("Visual-servoing stopping distance: %f", visual_servoing_stopping_distance);
 
   tf2_ros::TransformListener tfListener(tfBuffer);
 

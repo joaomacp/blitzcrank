@@ -7,6 +7,7 @@
     <param name="target_frame" value="target_marker" />
     <param name="visual_servoing_speed_cap" value="0.5" />
     <param name="visual_servoing_k" value="5" />
+    <param name="visual_servoing_stopping_distance" value="0.025" />
   </node>
 
   <node pkg="blitzcrank" type="joint_trajectory_control" name="blitzcrank_traj_control" output="screen">
