@@ -188,11 +188,13 @@ bool pregrasp(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
     return true;
   }
 
-  const double VEL_SCALING = 0.35; // TODO: use a param?
   const double YAW_ANGLE = 0.7;
-  ROS_INFO("Setting velocity scaling: %f", VEL_SCALING);
-  move_group.setMaxVelocityScalingFactor(VEL_SCALING);
-  move_group.setMaxAccelerationScalingFactor(VEL_SCALING);
+
+  // Below is commented: instead of doing this (which seems to cause the arm to stop too soon), we set the moveit config/joint_limits.yaml to have 70% joint velocity
+  //const double VEL_SCALING = 0.7; // TODO: use a param?
+  //ROS_INFO("Setting velocity scaling: %f", VEL_SCALING);
+  //move_group.setMaxVelocityScalingFactor(VEL_SCALING);
+  //move_group.setMaxAccelerationScalingFactor(VEL_SCALING);
 
   move_group.setStartStateToCurrentState();
 
