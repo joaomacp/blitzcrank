@@ -1,9 +1,38 @@
 #!/usr/bin/env python
 
+import os
 import rospy
 import smach
 
 from std_srvs.srv import Trigger
+
+class CloseGripper(smach.State):
+    """
+    Close Kinova gripper
+    """
+
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['success'])
+
+    def execute(self, userdata):
+        # TODO implement using kinova driver, or actions... This is a hacky way to do it
+        os.system('rosrun kinova_demo fingers_action_client.py j2s6s300 kinova percent 100 100 100')
+        rospy.sleep(4)
+        return 'success'
+
+class OpenGripper(smach.State):
+    """
+    Open Kinova gripper
+    """
+
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['success'])
+
+    def execute(self, userdata):
+        # TODO implement using kinova driver, or actions... This is a hacky way to do it
+        os.system('rosrun kinova_demo fingers_action_client.py j2s6s300 kinova percent 0 0 0')
+        rospy.sleep(4)
+        return 'success'
 
 class Pregrasp(smach.State):
     """
