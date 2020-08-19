@@ -224,7 +224,7 @@ bool pregrasp(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
   
   target_pose.position.x = targetTransform.transform.translation.x + APPROACH_DISTANCE*cos(rot_angle);
   target_pose.position.y = targetTransform.transform.translation.y + APPROACH_DISTANCE*sin(rot_angle);
-  target_pose.position.z = targetTransform.transform.translation.z + 0.08;
+  target_pose.position.z = targetTransform.transform.translation.z + 0.06;
 
   move_group.setPoseTarget(target_pose);
 
