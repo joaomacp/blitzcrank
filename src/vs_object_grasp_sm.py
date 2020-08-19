@@ -36,6 +36,7 @@ def vs_object_grasp_sm():
                             'failure': 'HEAD_FRONT'})      
 
         # End up with head looking a bit to the right, so that the wrist marker is more visible
+        # TODO Use target object's position to make the head look straight to it
         sm.add('HEAD_FRONT', hri_states.MoveHeadNew(100, 20, True),
                transitions={'success': 'PREGRASP',
                             'failure': 'PREGRASP'})
@@ -45,16 +46,14 @@ def vs_object_grasp_sm():
                             'failure': 'OVERALL_FAILURE'})
 
         sm.add('VISUAL_SERVO', vs_states.VisualServo(),
-               transitions={'success': 'CLOSE_FINGERS',
+               transitions={'success': 'CLOSE_GRIPPER',
                             'failure': 'OVERALL_FAILURE'})
 
         sm.add('CLOSE_GRIPPER', vs_states.CloseGripper(),
-                transitions={'success': 'OPEN_GRIPPER',
-                             'failure': 'OVERALL_FAILURE'})
+                transitions={'success': 'OPEN_GRIPPER'})
 
         sm.add('OPEN_GRIPPER', vs_states.OpenGripper(),
-                transitions={'success': 'OVERALL_SUCCESS',
-                             'failure': 'OVERALL_FAILURE'})
+                transitions={'success': 'OVERALL_SUCCESS'})
 
     # Smach viewer
     sis = smach_ros.IntrospectionServer('vs_object_grasp_sm_viewer', sm, '/VS_OBJECT_GRASP_SM')
@@ -78,8 +77,9 @@ def vs_object_grasp_sm():
     #       then we want the execution outcome (e.g. if grasping fails, move robot and try again)
     smach_thread.join()
 
-def main():
+if __name__ == '__main__':
     rospy.init_node('vs_object_grasp_sm', anonymous=False)
     mbot(enabled_components=['perception', 'hri'])
+    print('before sleep')
     rospy.sleep(1.0)
     vs_object_grasp_sm()
