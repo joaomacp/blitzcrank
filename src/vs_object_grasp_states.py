@@ -1,10 +1,33 @@
 #!/usr/bin/env python
 
 import os
+import math
 import rospy
 import smach
+import tf
 
 from std_srvs.srv import Trigger
+
+mbot = mbot_class.mbotRobot
+
+class MoveHeadObject(smach.State):
+    """
+    Move MBot head angle to point to object (a little to the right of it, so that wrist markers are visible)
+    """
+
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['success'])
+
+    def execute(self, userdata):
+        listener = tf.TransformListener()
+        try:
+            (trans, rot) = listener.lookupTransform('target_marker', 'base_link', rospy.Time(0))
+            heading_rad = math.atan2(trans.y, trans.x)
+            mbot().hri.rotate_head_value(180 - math.degrees(heading_rad) + 20, 20, True):
+         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException), e:
+            rospy.logerr("Failed to lookup target_marker->base_link tf: %s" % e)
+
+        return 'success'
 
 class CloseGripper(smach.State):
     """
@@ -48,7 +71,7 @@ class Pregrasp(smach.State):
             pregrasp = rospy.ServiceProxy('/kinova_manipulation/pregrasp', Trigger)
             result = pregrasp()
         except rospy.ServiceException, e:
-            print("Pregrasp service failed: %s" % e)
+            rospy.logerr("Pregrasp service failed: %s" % e)
             return 'failure'
         if result.success:
             return 'success'
@@ -69,7 +92,7 @@ class VisualServo(smach.State):
             vs = rospy.ServiceProxy('/kinova_manipulation/visual_servo', Trigger)
             result = vs()
         except rospy.ServiceException, e:
-            print("Visual servoing service failed: %s" % e)
+            rospy.logerr("Visual servoing service failed: %s" % e)
             return 'failure'
         if result.success:
             return 'success'

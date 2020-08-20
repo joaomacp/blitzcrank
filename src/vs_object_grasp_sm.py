@@ -35,11 +35,12 @@ def vs_object_grasp_sm():
                transitions={'success': 'HEAD_FRONT',
                             'failure': 'HEAD_FRONT'})      
 
-        # End up with head looking a bit to the right, so that the wrist marker is more visible
-        # TODO Use target object's position to make the head look straight to it
-        sm.add('HEAD_FRONT', hri_states.MoveHeadNew(100, 20, True),
-               transitions={'success': 'PREGRASP',
-                            'failure': 'PREGRASP'})
+        sm.add('HEAD_FRONT', hri_states.MoveHeadNew(90, 20, True),
+               transitions={'success': 'HEAD_OBJECT',
+                            'failure': 'HEAD_OBJECT'})
+
+       sm.add('HEAD_OBJECT', vs_states.MoveHeadObject(),
+               transitions={'success': 'PREGRASP'})
 
         sm.add('PREGRASP', vs_states.Pregrasp(),
                transitions={'success': 'VISUAL_SERVO',
@@ -62,14 +63,7 @@ def vs_object_grasp_sm():
     # Create a thread to execute the smach container
     smach_thread = threading.Thread(target=sm.execute)
     smach_thread.start()
-
-    # Wait for ctrl-c
-    rospy.spin()
-
-    rospy.logwarn("ctrl + c detected!!! preempting smach execution")
-
-    # Request the container to preempt
-    sm.request_preempt()
+Pre
 
     # Block until everything is preempted
     # (you could do something more complicated to get the execution outcome if you want it)
