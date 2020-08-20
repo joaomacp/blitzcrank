@@ -11,6 +11,8 @@
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 #include <moveit_msgs/CollisionObject.h>
+#include <moveit_msgs/JointConstraint.h>
+#include <moveit_msgs/Constraints.h>
 
 #include <blitzcrank/GetTargetAlignment.h>
 #include <std_srvs/Trigger.h>
@@ -19,7 +21,7 @@
  * Move to a pre-grasp pose - gripper horizontal in front of target
 **/
 
-const double APPROACH_DISTANCE = 0.1;
+const double APPROACH_DISTANCE = 0.08;
 
 bool gazebo = false;
 std::string target_frame;
@@ -227,6 +229,18 @@ bool pregrasp(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
   target_pose.position.z = targetTransform.transform.translation.z + 0.06;
 
   move_group.setPoseTarget(target_pose);
+
+  // Set joint constraint: pi/2 < joint1 angle < 3pi/2 - so that arm doesn't move around, and trajectory is more direct
+  moveit_msgs::JointConstraint joint1_constraint;
+  joint1_constraint.joint_name = "kinova_joint_1";
+  joint1_constraint.position = 3.14;
+  joint1_constraint.tolerance_below = 3.14/2 + 0.2;
+  joint1_constraint.tolerance_above = 3.14/2 + 0.2;
+  joint1_constraint.weight = 1.0;
+
+  moveit_msgs::Constraints path_constraints;
+  path_constraints.joint_constraints.push_back(joint1_constraint);
+  move_group.setPathConstraints(path_constraints);
 
   ROS_INFO("Making movegroup plan to target pose: X: %f | Y: %f |  Z: %f", target_pose.position.x, target_pose.position.y, target_pose.position.z);
 

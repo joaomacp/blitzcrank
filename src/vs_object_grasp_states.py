@@ -8,6 +8,8 @@ import tf
 
 from std_srvs.srv import Trigger
 
+# mbot robot class
+from mbot_robot_class_ros import mbot as mbot_class
 mbot = mbot_class.mbotRobot
 
 class MoveHeadObject(smach.State):
@@ -15,16 +17,20 @@ class MoveHeadObject(smach.State):
     Move MBot head angle to point to object (a little to the right of it, so that wrist markers are visible)
     """
 
-    def __init__(self):
+    def __init__(self, tfListener):
         smach.State.__init__(self, outcomes=['success'])
+        self.tfListener = tfListener
 
     def execute(self, userdata):
-        listener = tf.TransformListener()
+        rospy.sleep(2)
         try:
-            (trans, rot) = listener.lookupTransform('target_marker', 'base_link', rospy.Time(0))
-            heading_rad = math.atan2(trans.y, trans.x)
-            mbot().hri.rotate_head_value(180 - math.degrees(heading_rad) + 20, 20, True):
-         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException), e:
+            (trans, rot) = self.tfListener.lookupTransform('base_link', 'target_marker', rospy.Time(0))
+            rospy.loginfo('trans: %f %f' % (trans[0], trans[1]))
+            heading_rad = (math.pi/2) - math.atan2(trans[1], trans[0])
+            rospy.loginfo('heading rad: %f' % heading_rad)
+            rospy.loginfo('rotating head: %f' % (math.degrees(heading_rad) + 15))
+            mbot().hri.rotate_head_value(math.degrees(heading_rad) + 15, 15, True)
+        except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException), e:
             rospy.logerr("Failed to lookup target_marker->base_link tf: %s" % e)
 
         return 'success'

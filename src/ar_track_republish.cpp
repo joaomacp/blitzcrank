@@ -14,7 +14,7 @@ geometry_msgs::TransformStamped inputTargetTransform, outputTargetTransform, inp
 
 void republish(tf2_ros::TransformBroadcaster broadcaster) {
   try{
-    inputTargetTransform = tfBuffer.lookupTransform(cam_frame, input_target_frame, ros::Time(0));
+    inputTargetTransform = tfBuffer.lookupTransform("base_link", input_target_frame, ros::Time(0));
     acquired_target = true;
   }
   catch (tf2::TransformException &ex) {
@@ -25,7 +25,7 @@ void republish(tf2_ros::TransformBroadcaster broadcaster) {
   }
 
   try{
-    inputEndEffectorTransform = tfBuffer.lookupTransform(cam_frame, input_end_effector_frame, ros::Time(0));
+    inputEndEffectorTransform = tfBuffer.lookupTransform("base_link", input_end_effector_frame, ros::Time(0));
     acquired_end_effector = true;
   }
   catch (tf2::TransformException &ex) {
@@ -79,10 +79,10 @@ int main(int argc, char** argv) {
   tf2_ros::TransformListener tfListener(tfBuffer);
   tf2_ros::TransformBroadcaster tfBroadcaster;
 
-  outputTargetTransform.header.frame_id = cam_frame;
+  outputTargetTransform.header.frame_id = "base_link";
   outputTargetTransform.child_frame_id = "target_marker";
 
-  outputEndEffectorTransform.header.frame_id = cam_frame;
+  outputEndEffectorTransform.header.frame_id = "base_link";
   outputEndEffectorTransform.child_frame_id = "end_effector_marker";
 
   while(node_handle.ok()) {

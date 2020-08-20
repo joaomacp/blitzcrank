@@ -2,6 +2,7 @@
 
 import threading
 import rospy
+import tf
 import smach
 import smach_ros
 from smach import State,StateMachine
@@ -15,6 +16,8 @@ from mbot_robot_class_ros import mbot as mbot_class
 mbot = mbot_class.mbotRobot
 
 def vs_object_grasp_sm():
+    global listener
+
     sm = smach.StateMachine(outcomes=['OVERALL_SUCCESS', 'OVERALL_FAILURE'])
 
     with sm:
@@ -31,15 +34,15 @@ def vs_object_grasp_sm():
                transitions={'success': 'HEAD_RIGHT',
                             'failure': 'HEAD_RIGHT'})
 
-        sm.add('HEAD_RIGHT', hri_states.MoveHeadNew(140, 20, True),
+        sm.add('HEAD_RIGHT', hri_states.MoveHeadNew(140, 15, True),
                transitions={'success': 'HEAD_FRONT',
                             'failure': 'HEAD_FRONT'})      
 
-        sm.add('HEAD_FRONT', hri_states.MoveHeadNew(90, 20, True),
+        sm.add('HEAD_FRONT', hri_states.MoveHeadNew(90, 15, True),
                transitions={'success': 'HEAD_OBJECT',
                             'failure': 'HEAD_OBJECT'})
 
-       sm.add('HEAD_OBJECT', vs_states.MoveHeadObject(),
+        sm.add('HEAD_OBJECT', vs_states.MoveHeadObject(listener),
                transitions={'success': 'PREGRASP'})
 
         sm.add('PREGRASP', vs_states.Pregrasp(),
@@ -63,7 +66,14 @@ def vs_object_grasp_sm():
     # Create a thread to execute the smach container
     smach_thread = threading.Thread(target=sm.execute)
     smach_thread.start()
-Pre
+
+    # Wait for ctrl-c
+    rospy.spin()
+
+    rospy.logwarn('ctrl + c detected!!! preempting smach execution')
+
+    # Request the container to preempt
+    sm.request_preempt()
 
     # Block until everything is preempted
     # (you could do something more complicated to get the execution outcome if you want it)
@@ -73,6 +83,7 @@ Pre
 
 if __name__ == '__main__':
     rospy.init_node('vs_object_grasp_sm', anonymous=False)
+    listener = tf.TransformListener()
     mbot(enabled_components=['perception', 'hri'])
     print('before sleep')
     rospy.sleep(1.0)
