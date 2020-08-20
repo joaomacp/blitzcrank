@@ -272,7 +272,7 @@ bool pregrasp(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
     get_target_alignment.request.child = "j2s6s300::j2s6s300_link_finger_tip_1";
     get_target_alignment.request.desired_transform.translation.x = APPROACH_DISTANCE*cos(rot_angle);
     get_target_alignment.request.desired_transform.translation.y = APPROACH_DISTANCE*sin(rot_angle);
-    get_target_alignment.request.desired_transform.translation.z + 0.05;
+    get_target_alignment.request.desired_transform.translation.z + 0.06;
 
     if (getAlignmentClient.call(get_target_alignment)) {
       ROS_INFO("Translation error (2D for now): %f", get_target_alignment.response.translation_error);

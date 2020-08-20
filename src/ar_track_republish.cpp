@@ -7,7 +7,7 @@
 bool acquired_target = false;
 bool acquired_end_effector = false;
 
-std::string input_target_frame, input_end_effector_frame, cam_frame;
+std::string input_target_frame, input_end_effector_frame;
 
 tf2_ros::Buffer tfBuffer;
 geometry_msgs::TransformStamped inputTargetTransform, outputTargetTransform, inputEndEffectorTransform, outputEndEffectorTransform;
@@ -54,13 +54,6 @@ int main(int argc, char** argv) {
   ros::NodeHandle node_handle("~");
   ros::AsyncSpinner spinner(2);
   spinner.start();
-
-  if(node_handle.hasParam("cam_frame")) {
-    node_handle.getParam("cam_frame", cam_frame);
-  } else {
-    ROS_ERROR("'cam_frame' param not given");
-    ros::shutdown();
-  }
 
   if(node_handle.hasParam("target_frame")) {
     node_handle.getParam("target_frame", input_target_frame);

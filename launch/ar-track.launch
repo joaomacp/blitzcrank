@@ -13,7 +13,6 @@
     <node name="ar_track_alvar" pkg="ar_track_alvar" type="findMarkerBundlesNoKinect" respawn="false" output="screen" args="$(arg marker_size) $(arg max_new_marker_error) $(arg max_track_error) $(arg cam_image_topic) $(arg cam_info_topic) $(arg output_frame) $(arg bundle_files)" />
 
     <node name="ar_track_republish" pkg="blitzcrank" type="ar_track_republish" respawn="false" output="screen">
-      <param name="cam_frame" value="head_camera_rgb_optical_frame" />
       <param name="target_frame" value="ar_marker_3" />
       <param name="end_effector_frame" value="ar_marker_0" />
     </node>
