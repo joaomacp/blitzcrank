@@ -1,8 +1,12 @@
+/*
+  This node republishes the last seen transforms for the end-effector and target AR markers.
+  If the markers become occluded, they stop being published by ar_track_alvar, but their last
+  known positions will keep being published by this node.
+*/
+
 #include <ros/ros.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
-#include <tf2/LinearMath/Quaternion.h>
-#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 
 bool acquired_target = false;
 bool acquired_end_effector = false;
@@ -77,9 +81,11 @@ int main(int argc, char** argv) {
 
   outputEndEffectorTransform.header.frame_id = "base_link";
   outputEndEffectorTransform.child_frame_id = "end_effector_marker";
-
+  
+  ros::Rate republish_rate(20); // 20Hz
   while(node_handle.ok()) {
     republish(tfBroadcaster);
+    republish_rate.sleep();
   }
 
   return 0;
