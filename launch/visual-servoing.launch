@@ -1,10 +1,11 @@
 <launch>
   <arg name="gazebo" default="false" />
   <arg name="debug" default="false" />
+  <arg name="target_frame" default="target_marker" />
 
   <remap from="/joint_states" to="/kinova_driver/out/joint_state" />
   <node pkg="blitzcrank" type="visual_servoing" name="visual_servoing" output="screen">
-    <param name="target_frame" value="target_marker" />
+    <param name="target_frame" value="$(arg target_frame)" />
     <param name="visual_servoing_speed_cap" value="2" />
     <param name="visual_servoing_k" value="12" />
     <param name="visual_servoing_stopping_distance" value="0.025" />

@@ -1,0 +1,19 @@
+<launch>
+    <!-- Setting target_object to "bottle" at start, can be reset later to grasp a different object -->
+    <param name="target_object_class" value="bottle" />
+
+    <include file="$(find mbot_kinova_arm_moveit)/launch/kinova_demo.launch" />
+    <include file="$(find blitzcrank)/launch/ar-track.launch" />
+
+    <include file="$(find blitzcrank)/launch/pregrasp-service.launch">
+        <arg name="target_frame" value="localized_object" />
+    </include>
+
+    <include file="$(find blitzcrank)/launch/visual-servoing.launch" />
+        <arg name="target_frame" value="localized_object" />
+    </include>
+
+    <node pkg="blitzcrank" type="object_localizer_republish" name="object_localizer_republish" />
+
+    <!-- TODO launch SMach node -->
+</launch>

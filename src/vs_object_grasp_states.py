@@ -17,21 +17,22 @@ class MoveHeadObject(smach.State):
     Move MBot head angle to point to object (a little to the right of it, so that wrist markers are visible)
     """
 
-    def __init__(self, tfListener):
+    def __init__(self, tf_listener, target_frame):
         smach.State.__init__(self, outcomes=['success'])
-        self.tfListener = tfListener
+        self.tf_listener = tf_listener
+        self.target_frame = target_frame
 
     def execute(self, userdata):
         rospy.sleep(2)
         try:
-            (trans, rot) = self.tfListener.lookupTransform('base_link', 'target_marker', rospy.Time(0))
+            (trans, _) = self.tf_listener.lookupTransform('base_link', self.target_frame, rospy.Time(0))
             rospy.loginfo('trans: %f %f' % (trans[0], trans[1]))
             heading_rad = (math.pi/2) - math.atan2(trans[1], trans[0])
             rospy.loginfo('heading rad: %f' % heading_rad)
             rospy.loginfo('rotating head: %f' % (math.degrees(heading_rad) + 15))
             mbot().hri.rotate_head_value(math.degrees(heading_rad) + 15, 15, True)
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException), e:
-            rospy.logerr("Failed to lookup target_marker->base_link tf: %s" % e)
+            rospy.logerr("Failed to lookup %s->base_link tf: %s" % (self.target_frame, e))
 
         return 'success'
 

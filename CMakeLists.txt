@@ -10,6 +10,7 @@ find_package(catkin REQUIRED
     std_srvs
     geometry_msgs
     kinova_msgs
+    mbot_perception_msgs
     moveit_msgs
     message_generation
     moveit_core
@@ -45,6 +46,7 @@ catkin_package(
     std_srvs
     geometry_msgs
     kinova_msgs
+    mbot_perception_msgs
     moveit_msgs
     moveit_core
     moveit_ros_planning_interface
@@ -68,6 +70,7 @@ add_executable(pregrasp_service src/pregrasp_service.cpp)
 
 add_executable(joint_trajectory_control src/joint_trajectory_control.cpp)
 add_executable(ar_track_republish src/ar_track_republish.cpp)
+add_executable(object_localizer_republish src/object_localizer_republish.cpp)
 add_executable(visual_servoing src/visual_servoing.cpp)
 add_executable(test_tf_broadcaster src/test_tf_broadcaster.cpp)
 
@@ -80,6 +83,7 @@ target_link_libraries(vertical_approach_target ${catkin_LIBRARIES})
 
 target_link_libraries(joint_trajectory_control ${catkin_LIBRARIES})
 target_link_libraries(ar_track_republish ${catkin_LIBRARIES})
+target_link_libraries(object_localizer_republish ${catkin_LIBRARIES})
 target_link_libraries(visual_servoing ${catkin_LIBRARIES})
 
 target_link_libraries(pregrasp_service ${catkin_LIBRARIES})
@@ -97,6 +101,7 @@ install(TARGETS vertical_approach_target DESTINATION ${CATKIN_PACKAGE_BIN_DESTIN
 install(TARGETS pregrasp_service DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 install(TARGETS joint_trajectory_control DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 install(TARGETS ar_track_republish DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
+install(TARGETS object_localizer_republish DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 install(TARGETS visual_servoing DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 install(TARGETS gazebo_interface DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})
 install(TARGETS test_tf_broadcaster DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION})

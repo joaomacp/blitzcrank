@@ -17,6 +17,7 @@ mbot = mbot_class.mbotRobot
 
 def vs_object_grasp_sm():
     global listener
+    global target_frame
 
     sm = smach.StateMachine(outcomes=['OVERALL_SUCCESS', 'OVERALL_FAILURE'])
 
@@ -42,7 +43,7 @@ def vs_object_grasp_sm():
                transitions={'success': 'HEAD_OBJECT',
                             'failure': 'HEAD_OBJECT'})
 
-        sm.add('HEAD_OBJECT', vs_states.MoveHeadObject(listener),
+        sm.add('HEAD_OBJECT', vs_states.MoveHeadObject(listener, target_frame),
                transitions={'success': 'PREGRASP'})
 
         sm.add('PREGRASP', vs_states.Pregrasp(),
@@ -83,8 +84,13 @@ def vs_object_grasp_sm():
 
 if __name__ == '__main__':
     rospy.init_node('vs_object_grasp_sm', anonymous=False)
+    if not rospy.has_param('use_localizer'):
+        rospy.signal_shutdown('"use_localizer" param must be set to "true" or "false"')
+    if rospy.get_param('use_localizer') == 'true':
+        target_frame = 'localized_object'
+    else:
+        target_frame = 'target_marker'
     listener = tf.TransformListener()
     mbot(enabled_components=['perception', 'hri'])
-    print('before sleep')
     rospy.sleep(1.0)
     vs_object_grasp_sm()

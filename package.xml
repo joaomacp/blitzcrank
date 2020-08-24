@@ -16,6 +16,7 @@
   <depend>std_srvs</depend>
   <depend>geometry_msgs</depend>
   <depend>kinova_msgs</depend>
+  <depend>mbot_perception_msgs</depend>
   <depend>moveit_msgs</depend>
   <depend>message_generation</depend>
   <depend>pluginlib</depend>

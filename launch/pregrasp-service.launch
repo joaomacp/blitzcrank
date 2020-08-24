@@ -1,16 +1,15 @@
 <launch>
     <arg name="gazebo" default="false" />
-
     <arg name="root_frame" default="world" if="$(arg gazebo)" />
     <arg name="root_frame" default="base_link" unless="$(arg gazebo)" />
-
     <arg name="arm_name" default="kinova" />
+    <arg name="target_frame" default="target_marker" />
 
     <remap from="/joint_states" to="/$(arg arm_name)/joint_states" />
     <node pkg="blitzcrank" type="pregrasp_service" name="pregrasp_service" output="screen">
         <param name="gazebo" value="$(arg gazebo)" />
         <param name="root_frame" value="$(arg root_frame)" />
-        <param name="target_frame" value="target_marker" />
+        <param name="target_frame" value="$(arg target_frame)" />
     </node>
 
 </launch>
