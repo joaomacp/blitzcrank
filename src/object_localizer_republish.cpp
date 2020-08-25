@@ -33,6 +33,7 @@ void republish(tf2_ros::TransformBroadcaster broadcaster) {
     outputTargetTransform.transform.translation.x = target_object_pose.position.x;
     outputTargetTransform.transform.translation.y = target_object_pose.position.y;
     outputTargetTransform.transform.translation.z = target_object_pose.position.z;
+    outputTargetTransform.transform.rotation = target_object_pose.orientation;
     broadcaster.sendTransform(outputTargetTransform);
   }
   else {

@@ -85,8 +85,8 @@ def vs_object_grasp_sm():
 if __name__ == '__main__':
     rospy.init_node('vs_object_grasp_sm', anonymous=False)
     if not rospy.has_param('use_localizer'):
-        rospy.signal_shutdown('"use_localizer" param must be set to "true" or "false"')
-    if rospy.get_param('use_localizer') == 'true':
+        rospy.logerr('"use_localizer" param must be set to "true" or "false"')
+    if rospy.get_param('use_localizer') == True:
         target_frame = 'localized_object'
     else:
         target_frame = 'target_marker'
