@@ -150,7 +150,7 @@ bool pregrasp(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
   try {
     targetTransform = tfBuffer.lookupTransform(root_frame, target_frame, ros::Time(0), ros::Duration(5.0));
   } catch (tf2::TransformException &ex) {
-    ROS_ERROR("Error getting %s->target transform: %s", root_frame, ex.what());
+    ROS_ERROR("Error getting %s->target transform: %s", root_frame.c_str(), ex.what());
     res.success = false;
     res.message = "Error obtaining target transform";
     return true;

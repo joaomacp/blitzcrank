@@ -15,7 +15,6 @@
     <node name="transform_republish" pkg="blitzcrank" type="transform_republish" respawn="false" output="screen">
       <param name="target_frame" value="ar_marker_3" />
       <param name="end_effector_frame" value="ar_marker_0" />
-      <param name="grasp_target_frame" value="set_grasp_target" />
     </node>
 	
 </launch>

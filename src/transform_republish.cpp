@@ -12,7 +12,7 @@ bool acquired_grasp_target = false;
 bool acquired_target_marker = false;
 bool acquired_end_effector_marker = false;
 
-std::string input_grasp_target_frame, input_target_frame, input_end_effector_frame;
+std::string input_target_frame, input_end_effector_frame;
 
 tf2_ros::Buffer tfBuffer;
 geometry_msgs::TransformStamped inputTargetTransform, outputTargetTransform, inputEndEffectorTransform, outputEndEffectorTransform, inputGraspTargetTransform, outputGraspTargetTransform;
@@ -74,13 +74,6 @@ int main(int argc, char** argv) {
     node_handle.getParam("end_effector_frame", input_end_effector_frame);
   } else {
     ROS_ERROR("'end_effector_frame' param not given");
-    ros::shutdown();
-  }
-
-  if(node_handle.hasParam("grasp_target_frame")) {
-    node_handle.getParam("grasp_target_frame", input_grasp_target_frame);
-  } else {
-    ROS_ERROR("'grasp_target_frame' param not given");
     ros::shutdown();
   }
 
