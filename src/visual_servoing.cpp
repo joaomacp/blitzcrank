@@ -29,12 +29,17 @@ bool visual_servo(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &
 
     try{
       eefMarkerVisionTransform = tfBuffer.lookupTransform("root", "grasp_tool", ros::Time(0), ros::Duration(5.0));
-      targetTransform = tfBuffer.lookupTransform("root", target_frame, ros::Time(0), ros::Duration(5.0));
+
+      // Instead of continuously tracking the target object, we assume body and head are stopped while
+      // servoing, and use the target transform obtained initially. This solves the occlusion problem
+      // (when using the object localizer, the object's central point becomes occluded by the robot's
+      // finger, causing a depth-estimation error)
+      //targetTransform = tfBuffer.lookupTransform("root", target_frame, ros::Time(0), ros::Duration(5.0));
     }
     catch (tf2::TransformException &ex) {
-      ROS_ERROR("Error getting (eef -> target) transform: %s",ex.what());
+      ROS_ERROR("Error getting eef marker transform: %s",ex.what());
       res.success = false;
-      res.message = "Error getting (eef -> target) transform";
+      res.message = "Error getting eef marker transform";
       return true;
     }
     ROS_INFO("eefMarkerVisionTransform: X %f | Y %f | Z %f", eefMarkerVisionTransform.transform.translation.x, eefMarkerVisionTransform.transform.translation.y, eefMarkerVisionTransform.transform.translation.z);
@@ -157,6 +162,9 @@ int main(int argc, char** argv) {
   tf2_ros::TransformListener tfListener(tfBuffer);
 
   ros::Duration(2).sleep();
+
+  // Obtain the target transform once, at the start (assuming robot remains still while servoing)
+  targetTransform = tfBuffer.lookupTransform("root", target_frame, ros::Time(0), ros::Duration(5.0));
 
   ros::ServiceServer vs_server = node_handle.advertiseService("/kinova_manipulation/visual_servo", visual_servo);
 

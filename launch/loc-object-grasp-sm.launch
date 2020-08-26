@@ -14,9 +14,7 @@
         <arg name="target_frame" value="localized_object" />
     </include>
 
-    <include file="$(find blitzcrank)/launch/visual-servoing.launch">
-        <arg name="target_frame" value="localized_object" />
-    </include>
+    <include file="$(find blitzcrank)/launch/visual-servoing.launch" />
 
     <node pkg="blitzcrank" type="object_localizer_republish" name="object_localizer_republish" />
 

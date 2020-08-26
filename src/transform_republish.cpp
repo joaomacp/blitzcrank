@@ -8,53 +8,71 @@
 #include <tf2_ros/transform_listener.h>
 #include <tf2_ros/transform_broadcaster.h>
 
-bool acquired_target = false;
-bool acquired_end_effector = false;
+bool acquired_grasp_target = false;
+bool acquired_target_marker = false;
+bool acquired_end_effector_marker = false;
 
-std::string input_target_frame, input_end_effector_frame;
+std::string input_grasp_target_frame, input_target_frame, input_end_effector_frame;
 
 tf2_ros::Buffer tfBuffer;
-geometry_msgs::TransformStamped inputTargetTransform, outputTargetTransform, inputEndEffectorTransform, outputEndEffectorTransform;
+geometry_msgs::TransformStamped inputTargetTransform, outputTargetTransform, inputEndEffectorTransform, outputEndEffectorTransform, inputGraspTargetTransform, outputGraspTargetTransform;
 
 void republish(tf2_ros::TransformBroadcaster broadcaster) {
   try{
     inputTargetTransform = tfBuffer.lookupTransform("base_link", input_target_frame, ros::Time(0));
-    acquired_target = true;
+    acquired_target_marker = true;
   }
   catch (tf2::TransformException &ex) {
     ROS_WARN("%s",ex.what());
-    if(!acquired_target) {
+    if(!acquired_target_marker) {
       ros::Duration(1.0).sleep();
     }
   }
 
   try{
     inputEndEffectorTransform = tfBuffer.lookupTransform("base_link", input_end_effector_frame, ros::Time(0));
-    acquired_end_effector = true;
+    acquired_end_effector_marker = true;
   }
   catch (tf2::TransformException &ex) {
     ROS_WARN("%s",ex.what());
-    if(!acquired_end_effector) {
+    if(!acquired_end_effector_marker) {
+      ros::Duration(1.0).sleep();
+    }
+  }
+
+  try{
+    inputGraspTargetTransform = tfBuffer.lookupTransform("base_link", input_grasp_target_frame, ros::Time(0));
+    acquired_grasp_target = true;
+  }
+  catch (tf2::TransformException &ex) {
+    ROS_WARN("%s",ex.what());
+    if(!acquired_grasp_target) {
       ros::Duration(1.0).sleep();
     }
   }
 
   // Republish transforms, based on the last time they were acquired
-  if(acquired_target) {
+  if(acquired_target_marker) {
     outputTargetTransform.header.stamp = ros::Time::now();
     outputTargetTransform.transform = inputTargetTransform.transform;
     broadcaster.sendTransform(outputTargetTransform);
   }
 
-  if(acquired_end_effector) {
+  if(acquired_end_effector_marker) {
     outputEndEffectorTransform.header.stamp = ros::Time::now();
     outputEndEffectorTransform.transform = inputEndEffectorTransform.transform;
     broadcaster.sendTransform(outputEndEffectorTransform);
   }
+
+  if(acquired_grasp_target) {
+    outputGraspTargetTransform.header.stamp = ros::Time::now();
+    outputGraspTargetTransform.transform = inputGraspTargetTransform.transform;
+    broadcaster.sendTransform(outputGraspTargetTransform);
+  }
 }
 
 int main(int argc, char** argv) {
-  ros::init(argc, argv, "ar_track_republish");
+  ros::init(argc, argv, "transform_republish");
   ros::NodeHandle node_handle("~");
   ros::AsyncSpinner spinner(2);
   spinner.start();
@@ -73,6 +91,13 @@ int main(int argc, char** argv) {
     ros::shutdown();
   }
 
+  if(node_handle.hasParam("grasp_target_frame")) {
+    node_handle.getParam("grasp_target_frame", input_grasp_target_frame);
+  } else {
+    ROS_ERROR("'grasp_target_frame' param not given");
+    ros::shutdown();
+  }
+
   tf2_ros::TransformListener tfListener(tfBuffer);
   tf2_ros::TransformBroadcaster tfBroadcaster;
 
@@ -81,6 +106,9 @@ int main(int argc, char** argv) {
 
   outputEndEffectorTransform.header.frame_id = "base_link";
   outputEndEffectorTransform.child_frame_id = "end_effector_marker";
+
+  outputGraspTargetTransform.header.frame_id = "base_link";
+  outputGraspTargetTransform.child_frame_id = "grasp_target";
   
   ros::Rate republish_rate(20); // 20Hz
   while(node_handle.ok()) {

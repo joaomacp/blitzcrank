@@ -1,5 +1,6 @@
 #include <ros/ros.h>
 #include <geometry_msgs/Pose.h>
+#include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
@@ -27,30 +28,12 @@ bool gazebo = false;
 std::string target_frame;
 std::string root_frame;
 
+tf2_ros::Buffer tfBuffer;
+geometry_msgs::TransformStamped targetTransform, setGraspTargetTransform;
+
 ros::ServiceClient getAlignmentClient;
 
-// rosrun kinova_demo fingers_action_client.py j2s6s300 percent 75 75 75
-void move_fingers(int percent_closed) {
-  if(!gazebo) {
-    std::ostringstream command;
-    command << "rosrun kinova_demo fingers_action_client.py j2s6s300 percent " << percent_closed << " " << percent_closed << " "<< percent_closed;
-    system(command.str().c_str());
-  }
-}
-
 bool add_collision_objects() {
-  // Get base_link -> target pose
-  tf2_ros::Buffer tfBuffer;
-  tf2_ros::TransformListener tfListener(tfBuffer);
-  geometry_msgs::TransformStamped targetTransform;
-  try {
-    targetTransform = tfBuffer.lookupTransform("base_link", target_frame, ros::Time(0), ros::Duration(5.0));
-  } catch (tf2::TransformException &ex) {
-    ROS_ERROR("Error getting (base_link -> target) transform: %s",ex.what());
-    ros::shutdown();
-    return false;
-  }
-
   moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
   //
   // Adding Cylinder to Planning Scene
@@ -163,32 +146,31 @@ bool add_collision_objects() {
 }
 
 bool pregrasp(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res) {
+  // Get target pose
+  try {
+    targetTransform = tfBuffer.lookupTransform(root_frame, target_frame, ros::Time(0), ros::Duration(5.0));
+  } catch (tf2::TransformException &ex) {
+    ROS_ERROR("Error getting %s->target transform: %s", root_frame, ex.what());
+    res.success = false;
+    res.message = "Error obtaining target transform";
+    return true;
+  }
+
+  // Publish grasp target once: will be republished by the transform_republish node
+  tf2_ros::TransformBroadcaster tfBroadcaster;
+  setGraspTargetTransform = targetTransform; // copy
+  setGraspTargetTransform.child_frame_id = "set_grasp_target";
+  tfBroadcaster.sendTransform(setGraspTargetTransform);
+
   // Add collision objects to moveit scene: floor plane, side plane, target object (to make hole in octomap)
   if (!add_collision_objects()) {
     res.success = false;
-    res.message = "Error adding collision objects - probably failed to obtain target transform";
     return true;
   }
 
   static const std::string PLANNING_GROUP = "arm";
 
   moveit::planning_interface::MoveGroupInterface move_group(PLANNING_GROUP);
-
-  // Get target pose
-  tf2_ros::Buffer tfBuffer;
-  tf2_ros::TransformListener tfListener(tfBuffer);
-
-  geometry_msgs::TransformStamped targetTransform;
-  try{
-    targetTransform = tfBuffer.lookupTransform(root_frame, target_frame, ros::Time(0), ros::Duration(2.0));
-    ROS_INFO("Target transform: X %f | Y %f | Z %f", targetTransform.transform.translation.x, targetTransform.transform.translation.y, targetTransform.transform.translation.z);
-  }
-  catch (tf2::TransformException &ex) {
-    ROS_ERROR("Error getting (root -> target) transform: %s",ex.what());
-    res.success = false;
-    res.message = "Error obtaining target transform";
-    return true;
-  }
 
   const double YAW_ANGLE = 0.7;
 
@@ -313,6 +295,8 @@ int main(int argc, char** argv) {
     ros::shutdown();
   }
   ROS_INFO("Target frame: %s", target_frame.c_str());
+
+  tf2_ros::TransformListener tfListener(tfBuffer);
 
   getAlignmentClient = node_handle.serviceClient<blitzcrank::GetTargetAlignment>("/gazebo_interface/get_target_alignment");
 

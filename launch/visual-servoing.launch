@@ -1,7 +1,7 @@
 <launch>
   <arg name="gazebo" default="false" />
   <arg name="debug" default="false" />
-  <arg name="target_frame" default="target_marker" />
+  <arg name="target_frame" default="grasp_target" />
 
   <remap from="/joint_states" to="/kinova_driver/out/joint_state" />
   <node pkg="blitzcrank" type="visual_servoing" name="visual_servoing" output="screen">

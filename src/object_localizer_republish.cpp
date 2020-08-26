@@ -60,7 +60,7 @@ void republish(tf2_ros::TransformBroadcaster broadcaster) {
 }
 
 int main(int argc, char** argv) {
-  ros::init(argc, argv, "ar_track_republish");
+  ros::init(argc, argv, "object_localizer_republish");
   ros::NodeHandle node_handle("~");
   ros::AsyncSpinner spinner(1);
   spinner.start();
