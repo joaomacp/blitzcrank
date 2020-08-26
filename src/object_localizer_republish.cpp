@@ -23,7 +23,7 @@ tf2_ros::Buffer tfBuffer;
 geometry_msgs::TransformStamped targetToCamTransform, camToBaseLinkTransform, targetToBaseLinkTransform;
 
 void objectsCallback(mbot_perception_msgs::RecognizedObject3DList msg) {
-  node_handle.getParam("/target_object_class", target_object_class);
+  ros::param::get("/target_object_class", target_object_class);
 
   for(int i = 0; i < msg.objects.size(); i++) {
     mbot_perception_msgs::RecognizedObject3D object = msg.objects[i];
