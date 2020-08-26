@@ -23,10 +23,6 @@ void republish(tf2_ros::TransformBroadcaster broadcaster) {
     acquired_target_marker = true;
   }
   catch (tf2::TransformException &ex) {
-    ROS_WARN("%s",ex.what());
-    if(!acquired_target_marker) {
-      ros::Duration(1.0).sleep();
-    }
   }
 
   try{
@@ -34,21 +30,6 @@ void republish(tf2_ros::TransformBroadcaster broadcaster) {
     acquired_end_effector_marker = true;
   }
   catch (tf2::TransformException &ex) {
-    ROS_WARN("%s",ex.what());
-    if(!acquired_end_effector_marker) {
-      ros::Duration(1.0).sleep();
-    }
-  }
-
-  try{
-    inputGraspTargetTransform = tfBuffer.lookupTransform("base_link", input_grasp_target_frame, ros::Time(0));
-    acquired_grasp_target = true;
-  }
-  catch (tf2::TransformException &ex) {
-    ROS_WARN("%s",ex.what());
-    if(!acquired_grasp_target) {
-      ros::Duration(1.0).sleep();
-    }
   }
 
   // Republish transforms, based on the last time they were acquired
@@ -69,6 +50,11 @@ void republish(tf2_ros::TransformBroadcaster broadcaster) {
     outputGraspTargetTransform.transform = inputGraspTargetTransform.transform;
     broadcaster.sendTransform(outputGraspTargetTransform);
   }
+}
+
+void setGraspTarget(geometry_msgs::TransformStamped msg) {
+  inputGraspTargetTransform = msg;
+  acquired_grasp_target = true;
 }
 
 int main(int argc, char** argv) {
@@ -100,6 +86,8 @@ int main(int argc, char** argv) {
 
   tf2_ros::TransformListener tfListener(tfBuffer);
   tf2_ros::TransformBroadcaster tfBroadcaster;
+
+  ros::Subscriber grasp_target_sub = node_handle.subscribe("/set_grasp_target", 1, setGraspTarget);
 
   outputTargetTransform.header.frame_id = "base_link";
   outputTargetTransform.child_frame_id = "target_marker";

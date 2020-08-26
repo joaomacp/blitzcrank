@@ -1,6 +1,5 @@
 #include <ros/ros.h>
 #include <geometry_msgs/Pose.h>
-#include <tf2_ros/transform_broadcaster.h>
 #include <tf2_ros/transform_listener.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
@@ -31,6 +30,7 @@ std::string root_frame;
 tf2_ros::Buffer tfBuffer;
 geometry_msgs::TransformStamped targetTransform, setGraspTargetTransform;
 
+ros::Publisher set_grasp_target_pub;
 ros::ServiceClient getAlignmentClient;
 
 bool add_collision_objects() {
@@ -157,10 +157,9 @@ bool pregrasp(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
   }
 
   // Publish grasp target once: will be republished by the transform_republish node
-  tf2_ros::TransformBroadcaster tfBroadcaster;
   setGraspTargetTransform = targetTransform; // copy
   setGraspTargetTransform.child_frame_id = "set_grasp_target";
-  tfBroadcaster.sendTransform(setGraspTargetTransform);
+  set_grasp_target_pub.publish(setGraspTargetTransform);
 
   // Add collision objects to moveit scene: floor plane, side plane, target object (to make hole in octomap)
   if (!add_collision_objects()) {
@@ -297,6 +296,8 @@ int main(int argc, char** argv) {
   ROS_INFO("Target frame: %s", target_frame.c_str());
 
   tf2_ros::TransformListener tfListener(tfBuffer);
+
+  set_grasp_target_pub = node_handle.advertise<geometry_msgs::TransformStamped>("/set_grasp_target", 1);
 
   getAlignmentClient = node_handle.serviceClient<blitzcrank::GetTargetAlignment>("/gazebo_interface/get_target_alignment");
 
