@@ -22,6 +22,9 @@ tf::Transform errorTf;
 double visual_servoing_k, visual_servoing_speed_cap, visual_servoing_stopping_distance;
 
 bool visual_servo(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res) {
+  // Obtain the target transform once, at the start (assuming robot remains still while servoing)
+  targetTransform = tfBuffer.lookupTransform("root", target_frame, ros::Time(0), ros::Duration(5.0));
+  
   ros::Rate vs_rate(20); // 20Hz
 
   while(true) {
@@ -162,9 +165,6 @@ int main(int argc, char** argv) {
   tf2_ros::TransformListener tfListener(tfBuffer);
 
   ros::Duration(2).sleep();
-
-  // Obtain the target transform once, at the start (assuming robot remains still while servoing)
-  targetTransform = tfBuffer.lookupTransform("root", target_frame, ros::Time(0), ros::Duration(5.0));
 
   ros::ServiceServer vs_server = node_handle.advertiseService("/kinova_manipulation/visual_servo", visual_servo);
 
