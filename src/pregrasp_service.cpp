@@ -10,6 +10,9 @@
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
 #include <moveit/planning_scene_monitor/planning_scene_monitor.h>
+#include <moveit_msgs/GetPlanningScene.h>
+#include <moveit_msgs/AllowedCollisionEntry.h>
+#include <moveit_msgs/PlanningScene.h>
 #include <moveit_msgs/CollisionObject.h>
 #include <moveit_msgs/JointConstraint.h>
 #include <moveit_msgs/Constraints.h>
@@ -33,6 +36,8 @@ geometry_msgs::TransformStamped targetTransform, setGraspTargetTransform;
 ros::Publisher set_grasp_target_pub;
 ros::ServiceClient getAlignmentClient;
 
+ros::ServiceClient getPlanningSceneClient;
+
 bool add_collision_objects() {
   moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
   //
@@ -50,7 +55,7 @@ bool add_collision_objects() {
   /* Setting height of cylinder. */ // TODO hardcoded for now, change this
   primitive.dimensions[0] = 0.2;
   /* Setting radius of cylinder. */
-  primitive.dimensions[1] = 0.02;
+  primitive.dimensions[1] = 0.03;
 
   // Define a pose for the cylinder (specified relative to frame_id).
   geometry_msgs::Pose cylinder_pose;
@@ -139,8 +144,55 @@ bool add_collision_objects() {
   planning_scene_interface.applyCollisionObject(side_collision_object);
 
   // Allow cylinder to collide with robot
-  collision_detection::AllowedCollisionMatrix acm = planning_scene->getAllowedCollisionMatrix();
-  acm.setDefaultEntry("target_object", true);
+  moveit_msgs::GetPlanningScene::Request request;
+  request.components.components = request.components.SCENE_SETTINGS |
+                                  request.components.ROBOT_STATE |
+                                  request.components.ROBOT_STATE_ATTACHED_OBJECTS |
+                                  request.components.WORLD_OBJECT_NAMES |
+                                  request.components.WORLD_OBJECT_GEOMETRY |
+                                  request.components.OCTOMAP |
+                                  request.components.TRANSFORMS |
+                                  request.components.ALLOWED_COLLISION_MATRIX |
+                                  request.components.LINK_PADDING_AND_SCALING |
+                                  request.components.OBJECT_COLORS;
+
+  moveit_msgs::GetPlanningScene::Response response;
+
+  getPlanningSceneClient.call(request, response);
+
+  moveit_msgs::PlanningScene ps = response.scene;
+
+  // Check if "target_object" is already in the AllowedCollisionMatrix - in that case, nothing more is needed
+  for(int i = 0; i < ps.allowed_collision_matrix.entry_names.size(); i++) {
+    if(ps.allowed_collision_matrix.entry_names[i] == "target_object") {
+      return true;
+    }
+  }
+
+  // Continue: modify the obtained PlanningScene by adding "target_object" to the AllowedCollisionMatrix
+  ps.robot_state.is_diff = true;
+  ps.is_diff = true;
+  // Below doesn't work. It's most likely a MoveIt bug: applyPlanningScene doesn't apply changes to
+  // AllowedCollisionMatrix default_entry_names or default_entry_values. If instead we modify the entry_names
+  // and entry_values, it works, so that's what we do.
+  //ps.allowed_collision_matrix.default_entry_names.push_back("target_object");
+  //ps.allowed_collision_matrix.default_entry_values.push_back(true);
+
+  ps.allowed_collision_matrix.entry_names.push_back("target_object");
+
+  // Add target object entry, collision allowed = true for every other object
+  moveit_msgs::AllowedCollisionEntry target_object_entry;
+  for(int i = 0; i < response.scene.allowed_collision_matrix.entry_names.size(); i++) {
+    target_object_entry.enabled.push_back(true);
+  }
+  ps.allowed_collision_matrix.entry_values.push_back(target_object_entry);
+
+  // For every object, set collision allowed = true when colliding with target object
+  for(int i = 0; i < ps.allowed_collision_matrix.entry_values.size(); i++) {
+    ps.allowed_collision_matrix.entry_values[i].enabled.push_back(true);
+  }
+
+  planning_scene_interface.applyPlanningScene(ps);
 
   return true;
 }
@@ -300,6 +352,8 @@ int main(int argc, char** argv) {
   set_grasp_target_pub = node_handle.advertise<geometry_msgs::TransformStamped>("/set_grasp_target", 1);
 
   getAlignmentClient = node_handle.serviceClient<blitzcrank::GetTargetAlignment>("/gazebo_interface/get_target_alignment");
+
+  getPlanningSceneClient = node_handle.serviceClient<moveit_msgs::GetPlanningScene>("/get_planning_scene");
 
   ros::ServiceServer pregrasp_server = node_handle.advertiseService("/kinova_manipulation/pregrasp", pregrasp);
 

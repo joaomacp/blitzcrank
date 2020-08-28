@@ -58,7 +58,11 @@ def vs_object_grasp_sm():
                 transitions={'success': 'OPEN_GRIPPER'})
 
         sm.add('OPEN_GRIPPER', vs_states.OpenGripper(),
-                transitions={'success': 'OVERALL_SUCCESS'})
+                transitions={'success': 'REST_ARM'})
+
+        sm.add('REST_ARM', vs_states.RestArm(),
+                transitions={'success': 'OVERALL_SUCCESS',
+                             'failure': 'OVERALL_FAILURE'})
 
     # Smach viewer
     sis = smach_ros.IntrospectionServer('vs_object_grasp_sm_viewer', sm, '/VS_OBJECT_GRASP_SM')
@@ -94,3 +98,4 @@ if __name__ == '__main__':
     mbot(enabled_components=['perception', 'hri'])
     rospy.sleep(1.0)
     vs_object_grasp_sm()
+    

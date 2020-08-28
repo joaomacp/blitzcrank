@@ -1,4 +1,5 @@
 <launch>
+    <param name="use_localizer" value="true" />
     <!-- Setting target_object to "bottle" at start, can be reset later to grasp a different object -->
     <param name="target_object_class" value="bottle" />
 

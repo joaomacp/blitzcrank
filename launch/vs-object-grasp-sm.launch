@@ -1,4 +1,6 @@
 <launch>
+    <param name="use_localizer" value="false" />
+
     <include file="$(find mbot_kinova_arm_moveit)/launch/kinova_demo.launch" />
     <include file="$(find blitzcrank)/launch/ar-track.launch" />
     <include file="$(find blitzcrank)/launch/pregrasp-service.launch" />

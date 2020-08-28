@@ -12,6 +12,11 @@ from std_srvs.srv import Trigger
 from mbot_robot_class_ros import mbot as mbot_class
 mbot = mbot_class.mbotRobot
 
+# Kinova manipulation
+import moveit_commander
+__commander = None
+__arm = None
+
 class MoveHeadObject(smach.State):
     """
     Move MBot head angle to point to object (a little to the right of it, so that wrist markers are visible)
@@ -106,3 +111,67 @@ class VisualServo(smach.State):
             return 'success'
         else:
             return 'failure'
+
+# TODO - this belongs in manipulation_states
+class RestArm(smach.State):
+    """
+    Place the kinova arm in its resting pose
+    """
+
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['success', 'failure'])
+
+    def execute(self, userdata):
+        if go_to_pose('mbot_resting', wait=True):
+            return 'success'
+        else:
+            return 'failure'
+
+# Kinova manipulation - auxiliary functions - TODO place in new mbot_class component: kinova_manipulation
+def initialize_moveit_commander():
+    global __commander
+    global __arm
+
+    if __commander is None:
+        # Initialize moveit commander
+        try:
+            from sys import argv
+            moveit_commander.roscpp_initialize(argv)
+            __commander = moveit_commander.RobotCommander()
+        except RuntimeError as e:
+            rospy.logerr('robot_description not found. Did you bringup?')
+            return False
+        except Exception as e:
+            rospy.logerr('could not initialize moveit_commander, unknown error: {}'.format(e))
+            return False
+        
+        # Initialize MoveIt group 'arm'
+        try:
+            group = 'arm'
+            __arm = __commander.get_group(group)
+        except moveit_commander.MoveItCommanderException as e:
+            rospy.logerr("group '{}' does not exist".format(group))
+            return False
+        except RuntimeError as e:
+            rospy.logwarn("moveit not available")
+            return False
+
+    return True
+
+def go_to_pose(pose, wait=False):
+    global __arm
+
+    if not initialize_moveit_commander():
+        return False
+
+    try:
+        __arm.set_named_target(pose)
+        __arm.go(wait=wait)
+        return True
+    except moveit_commander.MoveItCommanderException as e:
+        # moveit already prints an error
+        #rospy.logerr("pose '{}' doe_s not exist".format(pose))
+        return False
+    except Exception as e:
+        rospy.logerr("unknown error {}".format(e))
+        return False
