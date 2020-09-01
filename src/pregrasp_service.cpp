@@ -9,7 +9,6 @@
 
 #include <moveit/move_group_interface/move_group_interface.h>
 #include <moveit/planning_scene_interface/planning_scene_interface.h>
-#include <moveit/planning_scene_monitor/planning_scene_monitor.h>
 #include <moveit_msgs/GetPlanningScene.h>
 #include <moveit_msgs/AllowedCollisionEntry.h>
 #include <moveit_msgs/PlanningScene.h>
@@ -116,12 +115,6 @@ bool add_collision_objects() {
   side_pose.position.x = 0;
   side_pose.position.y = -0.85;
   side_pose.position.z = 0.5;
-
-  /// -- Planning scene monitor
-  planning_scene_monitor::PlanningSceneMonitorPtr psm = planning_scene_monitor::PlanningSceneMonitorPtr(
-  new planning_scene_monitor::PlanningSceneMonitor("robot_description"));
-
-  planning_scene_monitor::LockedPlanningSceneRW planning_scene = planning_scene_monitor::LockedPlanningSceneRW(psm);
 
   // Add cylinder as collision object
   collision_object.primitives.push_back(primitive);
