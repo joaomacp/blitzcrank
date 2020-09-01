@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import random
 import threading
 import rospy
 import tf
@@ -55,7 +56,22 @@ def vs_object_grasp_sm():
                             'failure': 'OVERALL_FAILURE'})
 
         sm.add('CLOSE_GRIPPER', vs_states.CloseGripper(),
-                transitions={'success': 'OPEN_GRIPPER'})
+                transitions={'success': 'LIFT_ARM'})
+
+        sm.add('LIFT_ARM', vs_states.MoveEefRelative(z=0.05),
+                transitions={'success': 'MOVE_ARM_TO_GOAL',
+                             'failure': 'OVERALL_FAILURE'})
+
+        # Randomizing goal position: either 8cm to the left or to the right, randomly
+        y_delta = 0.08 if random.random() < 0.5 else -0.08
+        sm.add('MOVE_ARM_TO_GOAL', vs_states.MoveEefRelative(y=y_delta),
+                transitions={'success': 'LOWER_ARM',
+                             'failure': 'OVERALL_FAILURE'})
+
+        sm.add('LOWER_ARM', vs_states.MoveEefRelative(x=0, y=0, z=-0.05),
+                transitions={'success': 'OPEN_GRIPPER',
+                             'failure': 'OVERALL_FAILURE'})
+
 
         sm.add('OPEN_GRIPPER', vs_states.OpenGripper(),
                 transitions={'success': 'REST_ARM'})

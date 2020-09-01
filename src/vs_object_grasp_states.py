@@ -53,7 +53,6 @@ class CloseGripper(smach.State):
     def execute(self, userdata):
         # TODO implement using kinova driver, or actions... This is a hacky way to do it
         os.system('rosrun kinova_demo fingers_action_client.py j2s6s300 kinova percent 100 100 100')
-        rospy.sleep(4)
         return 'success'
 
 class OpenGripper(smach.State):
@@ -67,7 +66,6 @@ class OpenGripper(smach.State):
     def execute(self, userdata):
         # TODO implement using kinova driver, or actions... This is a hacky way to do it
         os.system('rosrun kinova_demo fingers_action_client.py j2s6s300 kinova percent 0 0 0')
-        rospy.sleep(4)
         return 'success'
 
 class Pregrasp(smach.State):
@@ -108,6 +106,25 @@ class VisualServo(smach.State):
             rospy.logerr("Visual servoing service failed: %s" % e)
             return 'failure'
         if result.success:
+            return 'success'
+        else:
+            return 'failure'
+
+# TODO - this belongs in manipulation_states
+class MoveEefRelative(smach.State):
+    """
+    Move the Kinova end-effector, relative to where it currently is (in base_link frame:
+    x is forward-backward, y is right-left, z is up-down)
+    """
+
+    def __init__(self, x=None, y=None, z=None):
+        smach.State.__init__(self, outcomes=['success', 'failure'])
+        self.x = x
+        self.y = y
+        self.z = z
+
+    def execute(self, userdata):
+        if move_eef_relative(self.x, self.y, self.z, wait=True):
             return 'success'
         else:
             return 'failure'
@@ -167,6 +184,35 @@ def go_to_pose(pose, wait=False):
     try:
         __arm.set_named_target(pose)
         __arm.go(wait=wait)
+        return True
+    except moveit_commander.MoveItCommanderException as e:
+        # moveit already prints an error
+        #rospy.logerr("pose '{}' doe_s not exist".format(pose))
+        return False
+    except Exception as e:
+        rospy.logerr("unknown error {}".format(e))
+        return False
+
+def move_eef_relative(x, y, z, wait=False):
+    global __arm
+
+    if not initialize_moveit_commander():
+        return False
+    
+    try:
+        pose = __arm.get_current_pose()
+        rospy.loginfo('current pose: %f %f %f' % (pose.pose.position.x, pose.pose.position.y, pose.pose.position.z))
+
+        if x is not None:
+            pose.pose.position.x += x
+        if y is not None:
+            pose.pose.position.y += y
+        if z is not None:
+            pose.pose.position.z += z
+
+        __arm.set_pose_target(pose)
+        __arm.go(wait=wait)
+    
         return True
     except moveit_commander.MoveItCommanderException as e:
         # moveit already prints an error

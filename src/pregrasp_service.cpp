@@ -251,7 +251,7 @@ bool pregrasp(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
 
   q_rot_3.setRPY(0, 0, YAW_ANGLE);
 
-  q_new = q_rot_3*q_rot_2*q_rot;  
+  q_new = q_rot_3*q_rot_2*q_rot;
 
   q_new.normalize();
 
@@ -292,7 +292,7 @@ bool pregrasp(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
   // Moving to a pose goal
   // ^^^^^^^^^^^^^^^^^^^^^
   // give time to see the planned motion in rviz
-  ros::Duration(5).sleep();
+  ros::Duration(3).sleep();
   move_group.move();
 
   if(gazebo) {
