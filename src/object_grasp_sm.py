@@ -10,13 +10,13 @@ from smach import State,StateMachine
 
 import mbot_states.perception_states as percep_states
 import mbot_states.hri_states as hri_states
-import vs_object_grasp_states as vs_states
+import object_grasp_states as grasping_states
 
 # mbot robot class
 from mbot_robot_class_ros import mbot as mbot_class
 mbot = mbot_class.mbotRobot
 
-def vs_object_grasp_sm():
+def object_grasp_sm():
     global listener
     global target_frame
 
@@ -31,7 +31,7 @@ def vs_object_grasp_sm():
         # TODO if target object not present, move head left - try to add collision objects, move head right - try again
 
         # Clear octomap voxels
-        sm.add('CLEAR_OCTOMAP', vs_states.ClearOctomap(),
+        sm.add('CLEAR_OCTOMAP', grasping_states.ClearOctomap(),
                 transitions={'success': 'TILT_CAMERA_DOWN'})
 
         # Tilt camera down to see table and object
@@ -40,7 +40,7 @@ def vs_object_grasp_sm():
                             'failure': 'ADD_COLLISION_OBJECTS'})
 
         # Add MoveIt collision objects
-        sm.add('ADD_COLLISION_OBJECTS', vs_states.AddCollisionObjects(),
+        sm.add('ADD_COLLISION_OBJECTS', grasping_states.AddCollisionObjects(),
                 transitions={'success': 'HEAD_LEFT',
                             'failure': 'HEAD_LEFT'})
 
@@ -57,44 +57,44 @@ def vs_object_grasp_sm():
                transitions={'success': 'HEAD_OBJECT',
                             'failure': 'HEAD_OBJECT'})
 
-        sm.add('HEAD_OBJECT', vs_states.MoveHeadObject(listener, target_frame),
+        sm.add('HEAD_OBJECT', grasping_states.MoveHeadObject(listener, target_frame),
                transitions={'success': 'PREGRASP'})
 
-        sm.add('PREGRASP', vs_states.Pregrasp(),
+        sm.add('PREGRASP', grasping_states.Pregrasp(),
                transitions={'success': 'VISUAL_SERVO',
                             'failure': 'OVERALL_FAILURE'})
 
-        sm.add('VISUAL_SERVO', vs_states.VisualServo(),
+        sm.add('VISUAL_SERVO', grasping_states.VisualServo(),
                transitions={'success': 'CLOSE_GRIPPER',
                             'failure': 'OVERALL_FAILURE'})
 
-        sm.add('CLOSE_GRIPPER', vs_states.CloseGripper(),
+        sm.add('CLOSE_GRIPPER', grasping_states.CloseGripper(),
                 transitions={'success': 'LIFT_ARM'})
 
-        sm.add('LIFT_ARM', vs_states.MoveEefRelative(z=0.05),
+        sm.add('LIFT_ARM', grasping_states.MoveEefRelative(z=0.05),
                 transitions={'success': 'MOVE_ARM_TO_GOAL',
                              'failure': 'OVERALL_FAILURE'})
 
         # Randomizing goal position: either 8cm to the left or to the right, randomly
         y_delta = 0.03 if random.random() < 0.5 else -0.03
-        sm.add('MOVE_ARM_TO_GOAL', vs_states.MoveEefRelative(y=y_delta),
+        sm.add('MOVE_ARM_TO_GOAL', grasping_states.MoveEefRelative(y=y_delta),
                 transitions={'success': 'LOWER_ARM',
                              'failure': 'OVERALL_FAILURE'})
 
-        sm.add('LOWER_ARM', vs_states.MoveEefRelative(x=0, y=0, z=-0.05),
+        sm.add('LOWER_ARM', grasping_states.MoveEefRelative(x=0, y=0, z=-0.05),
                 transitions={'success': 'OPEN_GRIPPER',
                              'failure': 'OVERALL_FAILURE'})
 
 
-        sm.add('OPEN_GRIPPER', vs_states.OpenGripper(),
+        sm.add('OPEN_GRIPPER', grasping_states.OpenGripper(),
                 transitions={'success': 'REST_ARM'})
 
-        sm.add('REST_ARM', vs_states.RestArm(),
+        sm.add('REST_ARM', grasping_states.RestArm(),
                 transitions={'success': 'OVERALL_SUCCESS',
                              'failure': 'OVERALL_FAILURE'})
 
     # Smach viewer
-    sis = smach_ros.IntrospectionServer('vs_object_grasp_sm_viewer', sm, '/VS_OBJECT_GRASP_SM')
+    sis = smach_ros.IntrospectionServer('object_grasp_sm_viewer', sm, '/OBJECT_GRASP_SM')
     sis.start()
 
     # Create a thread to execute the smach container
@@ -116,15 +116,14 @@ def vs_object_grasp_sm():
     smach_thread.join()
 
 if __name__ == '__main__':
-    rospy.init_node('vs_object_grasp_sm', anonymous=False)
-    if not rospy.has_param('use_localizer'):
-        rospy.logerr('"use_localizer" param must be set to "true" or "false"')
-    if rospy.get_param('use_localizer') == True:
-        target_frame = 'localized_object'
-    else:
-        target_frame = 'target_marker'
+    rospy.init_node('object_grasp_sm', anonymous=False)
+
+    if not rospy.has_param('target_frame'):
+        rospy.signal_shutdown('"target_frame" param not found')
+    target_frame = rospy.get_param('target_frame')
+
     listener = tf.TransformListener()
     mbot(enabled_components=['perception', 'hri'])
     rospy.sleep(1.0)
-    vs_object_grasp_sm()
+    object_grasp_sm()
     

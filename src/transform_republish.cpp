@@ -2,6 +2,8 @@
   This node republishes the last seen transforms for the end-effector and target AR markers.
   If the markers become occluded, they stop being published by ar_track_alvar, but their last
   known positions will keep being published by this node.
+
+  It also publishes the "grasp_target" transform, sent by a "set_grasp_target" message.
 */
 
 #include <ros/ros.h>

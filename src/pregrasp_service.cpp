@@ -46,10 +46,8 @@ bool add_collision_objects(std_srvs::Trigger::Request &req, std_srvs::Trigger::R
   }
 
   moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
-  //
-  // Adding Cylinder to Planning Scene
-  // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  // Define a collision object ROS message.
+
+
   moveit_msgs::CollisionObject collision_object;
   collision_object.header.frame_id = "base_link";
   collision_object.id = "target_object";
@@ -58,29 +56,10 @@ bool add_collision_objects(std_srvs::Trigger::Request &req, std_srvs::Trigger::R
   shape_msgs::SolidPrimitive primitive;
   primitive.type = primitive.CYLINDER;
   primitive.dimensions.resize(2);
-  /* Setting height of cylinder. */ // TODO hardcoded for now, change this
-  primitive.dimensions[0] = 0.2;
-  /* Setting radius of cylinder. */
-  primitive.dimensions[1] = 0.03;
+  primitive.dimensions[0] = 0.2; // Cylinder height
+  primitive.dimensions[1] = 0.03; // Cylinder radius
 
-  // Define a pose for the cylinder (specified relative to frame_id).
   geometry_msgs::Pose cylinder_pose;
-  /* Computing and setting quaternion from axis angle representation. */
-  // TODO: compute angle later, for now hardcoding as vertical
-  //Eigen::Vector3d cylinder_z_direction(cylinder_params->direction_vec[0], cylinder_params->direction_vec[1], cylinder_params->direction_vec[2]);
-  Eigen::Vector3d origin_z_direction(0., 0., 1.);
-  Eigen::Vector3d axis;
-  //axis = origin_z_direction.cross(cylinder_z_direction);
-  axis = origin_z_direction; // hardcode vertical
-  axis.normalize();
-  //double angle = acos(cylinder_z_direction.dot(origin_z_direction));
-  double angle = acos(0);
-  cylinder_pose.orientation.x = axis.x() * sin(angle / 2);
-  cylinder_pose.orientation.y = axis.y() * sin(angle / 2);
-  cylinder_pose.orientation.z = axis.z() * sin(angle / 2);
-  cylinder_pose.orientation.w = cos(angle / 2);
-
-  // Setting the position of cylinder.
   cylinder_pose.position.x = targetTransform.transform.translation.x;
   cylinder_pose.position.y = targetTransform.transform.translation.y;
   cylinder_pose.position.z = targetTransform.transform.translation.z;
@@ -143,7 +122,10 @@ bool add_collision_objects(std_srvs::Trigger::Request &req, std_srvs::Trigger::R
   planning_scene_interface.applyCollisionObject(ground_collision_object);
   planning_scene_interface.applyCollisionObject(side_collision_object);
 
-  // Allow cylinder to collide with robot
+  // Allow cylinder to collide with robot: the moveit planning scene API is complex:
+  // We request the current planning scene, modify its allowedcollisionmatrix to add an entry for "target_object",
+  // add a new row with all 1s (true values), and add a new column (a value to every row) also with 1s.
+  // Then we apply the planning scene as a diff.
   moveit_msgs::GetPlanningScene::Request request;
   request.components.components = request.components.SCENE_SETTINGS |
                                   request.components.ROBOT_STATE |
@@ -173,22 +155,16 @@ bool add_collision_objects(std_srvs::Trigger::Request &req, std_srvs::Trigger::R
   // Continue: modify the obtained PlanningScene by adding "target_object" to the AllowedCollisionMatrix
   ps.robot_state.is_diff = true;
   ps.is_diff = true;
-  // Below doesn't work. It's most likely a MoveIt bug: applyPlanningScene doesn't apply changes to
-  // AllowedCollisionMatrix default_entry_names or default_entry_values. If instead we modify the entry_names
-  // and entry_values, it works, so that's what we do.
-  //ps.allowed_collision_matrix.default_entry_names.push_back("target_object");
-  //ps.allowed_collision_matrix.default_entry_values.push_back(true);
-
   ps.allowed_collision_matrix.entry_names.push_back("target_object");
 
-  // Add target object entry, collision allowed = true for every other object
+  // Add row for target object entry, collision allowed = true for every other object
   moveit_msgs::AllowedCollisionEntry target_object_entry;
   for(int i = 0; i < response.scene.allowed_collision_matrix.entry_names.size(); i++) {
     target_object_entry.enabled.push_back(true);
   }
   ps.allowed_collision_matrix.entry_values.push_back(target_object_entry);
 
-  // For every object, set collision allowed = true when colliding with target object
+  // For every row (object), set collision allowed = true when colliding with target object
   for(int i = 0; i < ps.allowed_collision_matrix.entry_values.size(); i++) {
     ps.allowed_collision_matrix.entry_values[i].enabled.push_back(true);
   }
@@ -285,7 +261,6 @@ bool pregrasp(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
   // Publish grasp target once: will be republished by the transform_republish node
   // TODO parameterize: don't do this if we want continuous detection - in that case, visual servo will republish the tf.
   setGraspTargetTransform = targetTransform; // copy
-  setGraspTargetTransform.child_frame_id = "set_grasp_target";
   set_grasp_target_pub.publish(setGraspTargetTransform);
 
   static const std::string PLANNING_GROUP = "arm";

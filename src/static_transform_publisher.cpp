@@ -1,2 +1,0 @@
-// TODO publish the real_marker <->(?) end_effector transform. Add the other published static transform (camera to robot base) in this node,
-// and make a params yaml file with the transforms (instead of being the params of a launch file).

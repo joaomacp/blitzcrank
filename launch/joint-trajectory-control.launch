@@ -1,6 +1,0 @@
-<launch>
-    <arg name="gazebo" default="false" />
-
-    <remap from="/joint_states" to="/j2s6s300/joint_states" />
-    <node pkg="blitzcrank" type="joint_trajectory_control" name="blitzcrank_traj_control" output="screen" />
-</launch>

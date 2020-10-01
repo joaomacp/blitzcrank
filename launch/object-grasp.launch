@@ -1,0 +1,26 @@
+<launch>
+    <arg name="use_localizer" default="true" />
+    
+    <group if="$(arg use_localizer)">
+        <param name="target_frame" value="localized_object" />
+
+        <param name="target_object_class" value="bottle" />
+
+        <include file="$(find mbot_perception_launch)/launch/mbot_perception.launch">
+            <arg name="launch_generic" value="true"/>
+            <arg name="launch_specific" value="false"/>
+        </include>
+
+        <node pkg="blitzcrank" type="object_localizer_republish" name="object_localizer_republish" />
+    </group>
+    
+    <group unless="$(arg use_localizer)">
+        <param name="target_frame" value="target_marker" />
+    </group>
+
+    <include file="$(find mbot_kinova_arm_moveit)/launch/kinova_demo.launch" />
+    <include file="$(find blitzcrank)/launch/ar-track.launch" />
+
+    <include file="$(find blitzcrank)/launch/pregrasp-service.launch" />
+    <include file="$(find blitzcrank)/launch/visual-servoing.launch" />
+</launch>

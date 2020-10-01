@@ -1,6 +1,0 @@
-<launch>
-    <include file="$(find j2s6s300_moveit_config)/launch/j2s6s300_demo.launch">
-        <!-- Launch local database - makes it possible to save/load robot states (= arm poses) -->
-        <arg name="db" value="true" />
-    </include>
-</launch>

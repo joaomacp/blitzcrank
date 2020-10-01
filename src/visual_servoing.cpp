@@ -128,7 +128,7 @@ int main(int argc, char** argv) {
   ros::AsyncSpinner spinner(2);
   spinner.start();
 
-  vel_pub = node_handle.advertise<geometry_msgs::TwistStamped>("/blitzcrank/velocity_control", 1000);
+  vel_pub = node_handle.advertise<geometry_msgs::TwistStamped>("/blitzcrank/apply_eef_velocity", 1000);
 
   if(node_handle.hasParam("target_frame")) {
     node_handle.getParam("target_frame", target_frame);
