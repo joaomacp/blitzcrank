@@ -6,7 +6,7 @@ import rospy
 import smach
 import tf
 
-from std_srvs.srv import Trigger
+from std_srvs.srv import Trigger, Empty
 
 # mbot robot class
 from mbot_robot_class_ros import mbot as mbot_class
@@ -52,7 +52,7 @@ class ClearOctomap(smach.State):
 
     def execute(self, userdata):
         rospy.wait_for_service('/clear_octomap')
-        clear_octomap = rospy.ServiceProxy('/clear_octomap', Trigger)
+        clear_octomap = rospy.ServiceProxy('/clear_octomap', Empty)
         clear_octomap()
         return 'success'
 
