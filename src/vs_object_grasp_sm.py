@@ -24,11 +24,24 @@ def vs_object_grasp_sm():
 
     with sm:
 
-        # TODO (if needed) add a "clear octomap" state - implement using PlanningSceneMonitor
+        # Head angle should be centered before starting this SMach.
+        # Alternative (TODO): - add a "clear octomap" state - implement using PlanningSceneMonitor
+        #                     - turn head center - clear octomap - continue
+        # Also: for now, target object must be visible by the centered head.
+        # TODO if target object not present, move head left - try to add collision objects, move head right - try again
+
+        # Clear octomap voxels
+        sm.add('CLEAR_OCTOMAP', vs_states.ClearOctomap(),
+                transitions={'success': 'TILT_CAMERA_DOWN'})
 
         # Tilt camera down to see table and object
         sm.add('TILT_CAMERA_DOWN', percep_states.TiltHeadCam(-30),
-               transitions={'success': 'HEAD_LEFT',
+               transitions={'success': 'ADD_COLLISION_OBJECTS',
+                            'failure': 'ADD_COLLISION_OBJECTS'})
+
+        # Add MoveIt collision objects
+        sm.add('ADD_COLLISION_OBJECTS', vs_states.AddCollisionObjects(),
+                transitions={'success': 'HEAD_LEFT',
                             'failure': 'HEAD_LEFT'})
 
         # Move head side to side to build octomap
@@ -63,7 +76,7 @@ def vs_object_grasp_sm():
                              'failure': 'OVERALL_FAILURE'})
 
         # Randomizing goal position: either 8cm to the left or to the right, randomly
-        y_delta = 0.08 if random.random() < 0.5 else -0.08
+        y_delta = 0.03 if random.random() < 0.5 else -0.03
         sm.add('MOVE_ARM_TO_GOAL', vs_states.MoveEefRelative(y=y_delta),
                 transitions={'success': 'LOWER_ARM',
                              'failure': 'OVERALL_FAILURE'})

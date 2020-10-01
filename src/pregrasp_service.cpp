@@ -15,29 +15,36 @@
 #include <moveit_msgs/CollisionObject.h>
 #include <moveit_msgs/JointConstraint.h>
 #include <moveit_msgs/Constraints.h>
+#include <darknet_ros_py/RecognizedObject.h>
+#include <darknet_ros_py/RecognizedObjectArrayStamped.h>
+#include <sensor_msgs/RegionOfInterest.h>
 
-#include <blitzcrank/GetTargetAlignment.h>
 #include <std_srvs/Trigger.h>
-
-/**
- * Move to a pre-grasp pose - gripper horizontal in front of target
-**/
 
 const double APPROACH_DISTANCE = 0.08;
 
-bool gazebo = false;
 std::string target_frame;
 std::string root_frame;
 
 tf2_ros::Buffer tfBuffer;
-geometry_msgs::TransformStamped targetTransform, setGraspTargetTransform;
+geometry_msgs::TransformStamped setGraspTargetTransform;
 
 ros::Publisher set_grasp_target_pub;
-ros::ServiceClient getAlignmentClient;
 
 ros::ServiceClient getPlanningSceneClient;
 
-bool add_collision_objects() {
+bool add_collision_objects(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res) {
+  // Get target pose, to place collision cylinder
+  geometry_msgs::TransformStamped targetTransform;
+  try {
+    targetTransform = tfBuffer.lookupTransform(root_frame, target_frame, ros::Time(0), ros::Duration(5.0));
+  } catch (tf2::TransformException &ex) {
+    ROS_ERROR("Error getting %s->target transform: %s", root_frame.c_str(), ex.what());
+    res.success = false;
+    res.message = "Error obtaining target transform";
+    return true;
+  }
+
   moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
   //
   // Adding Cylinder to Planning Scene
@@ -158,6 +165,7 @@ bool add_collision_objects() {
   // Check if "target_object" is already in the AllowedCollisionMatrix - in that case, nothing more is needed
   for(int i = 0; i < ps.allowed_collision_matrix.entry_names.size(); i++) {
     if(ps.allowed_collision_matrix.entry_names[i] == "target_object") {
+      res.success = true;
       return true;
     }
   }
@@ -187,11 +195,84 @@ bool add_collision_objects() {
 
   planning_scene_interface.applyPlanningScene(ps);
 
+  res.success = true;
   return true;
+}
+
+// Calculate the pregrasp pose based on the object's bounding box (currently), or object class (todo), or other factors like table plane... (todo)
+geometry_msgs::Pose get_pregrasp_pose(geometry_msgs::TransformStamped targetTransform) {
+  std::string target_object_class;
+  if (!ros::param::get("/target_object_class", target_object_class)) {
+    ROS_ERROR("'/target_object_class' param not given");
+    ros::shutdown();
+  }
+
+  geometry_msgs::Pose pregrasp_pose;
+
+  const double YAW_ANGLE = 0.7;
+
+  double rot_angle = atan2(targetTransform.transform.translation.y, targetTransform.transform.translation.x) - 3.14;
+  rot_angle += YAW_ANGLE;
+
+  pregrasp_pose.position.x = targetTransform.transform.translation.x + APPROACH_DISTANCE*cos(rot_angle);
+  pregrasp_pose.position.y = targetTransform.transform.translation.y + APPROACH_DISTANCE*sin(rot_angle);
+  pregrasp_pose.position.z = targetTransform.transform.translation.z + 0.06;
+  
+  // Get object's bounding box
+  sensor_msgs::RegionOfInterest bounding_box;
+  bool found_bounding_box = false;
+  bool tries = 4;
+  for(int attempts = 0; attempts < 4; attempts++) {
+    darknet_ros_py::RecognizedObjectArrayStampedConstPtr object_list = ros::topic::waitForMessage<darknet_ros_py::RecognizedObjectArrayStamped>("/mbot_perception/generic_detector/detections", ros::Duration(5.0));
+
+    for(const auto& obj: object_list->objects.objects) {
+      if(obj.class_name == target_object_class) {
+        bounding_box = obj.bounding_box;
+        found_bounding_box = true;
+        break;
+      }
+    }
+  }
+  if(!found_bounding_box) {
+    ROS_ERROR("Couldn't obtain YOLO bounding box of target object");
+    ros::shutdown();
+  }
+
+  // Modify pregrasp pose based on bounding box (vertical vs horizontal)
+  tf2::Quaternion q_rot, q_rot_2, q_rot_3, q_new;
+  if(bounding_box.height > bounding_box.width*1.3) {
+    ROS_INFO("Vertical bounding box: pregrasp pose with flat hand");
+
+    // TODO simplify these multiplications
+    q_rot.setRPY(0, 1.57, 0);
+
+    q_rot_2.setRPY(1.57, 0, 0);
+
+    q_rot_3.setRPY(0, 0, YAW_ANGLE);
+
+    q_new = q_rot_3*q_rot_2*q_rot;
+  }
+  else {
+    ROS_INFO("Horizontal bounding box: pregrasp pose with angled hand");
+
+    q_rot.setRPY(0, 2.3, 0.7);
+
+    // EEF rotation (finger positioning)
+    q_rot_2.setRPY(0, 0, 1.57);
+
+    q_new = q_rot*q_rot_2;
+  }
+
+  q_new.normalize();
+
+  tf2::convert(q_new, pregrasp_pose.orientation);
+
+  return pregrasp_pose;
 }
 
 bool pregrasp(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res) {
   // Get target pose
+  geometry_msgs::TransformStamped targetTransform;
   try {
     targetTransform = tfBuffer.lookupTransform(root_frame, target_frame, ros::Time(0), ros::Duration(5.0));
   } catch (tf2::TransformException &ex) {
@@ -202,59 +283,20 @@ bool pregrasp(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
   }
 
   // Publish grasp target once: will be republished by the transform_republish node
+  // TODO parameterize: don't do this if we want continuous detection - in that case, visual servo will republish the tf.
   setGraspTargetTransform = targetTransform; // copy
   setGraspTargetTransform.child_frame_id = "set_grasp_target";
   set_grasp_target_pub.publish(setGraspTargetTransform);
-
-  // Add collision objects to moveit scene: floor plane, side plane, target object (to make hole in octomap)
-  if (!add_collision_objects()) {
-    res.success = false;
-    return true;
-  }
 
   static const std::string PLANNING_GROUP = "arm";
 
   moveit::planning_interface::MoveGroupInterface move_group(PLANNING_GROUP);
 
-  const double YAW_ANGLE = 0.7;
-
-  // Below is commented: instead of doing this (which seems to cause the arm to stop too soon), we set the moveit config/joint_limits.yaml to have 70% joint velocity
-  //const double VEL_SCALING = 0.7; // TODO: use a param?
-  //ROS_INFO("Setting velocity scaling: %f", VEL_SCALING);
-  //move_group.setMaxVelocityScalingFactor(VEL_SCALING);
-  //move_group.setMaxAccelerationScalingFactor(VEL_SCALING);
-
   move_group.setStartStateToCurrentState();
 
-  geometry_msgs::Pose target_pose;
+  geometry_msgs::Pose pregrasp_pose = get_pregrasp_pose(targetTransform);
 
-  // Target arm rotation will be parallel to xy (ground) plane, and have an angle pointing from robot base XY -> target XY
-  // double rot_angle = atan2(targetTransform.transform.translation.y, targetTransform.transform.translation.x) - 3.14; // TODO normalize
-
-  double rot_angle = atan2(targetTransform.transform.translation.y, targetTransform.transform.translation.x) - 3.14; // TODO normalize
-  // Add manipulator's yaw angle
-  rot_angle += YAW_ANGLE;
-
-  tf2::Quaternion q_rot, q_rot_2, q_rot_3, q_new;
-
-  double r=0, p=1.57, y=0;
-  q_rot.setRPY(r, p, y);
-
-  q_rot_2.setRPY(1.57, 0, 0);
-
-  q_rot_3.setRPY(0, 0, YAW_ANGLE);
-
-  q_new = q_rot_3*q_rot_2*q_rot;
-
-  q_new.normalize();
-
-  tf2::convert(q_new, target_pose.orientation);
-  
-  target_pose.position.x = targetTransform.transform.translation.x + APPROACH_DISTANCE*cos(rot_angle);
-  target_pose.position.y = targetTransform.transform.translation.y + APPROACH_DISTANCE*sin(rot_angle);
-  target_pose.position.z = targetTransform.transform.translation.z + 0.06;
-
-  move_group.setPoseTarget(target_pose);
+  move_group.setPoseTarget(pregrasp_pose);
 
   // Set joint constraint: pi/2 < joint1 angle < 3pi/2 - so that arm doesn't move around, and trajectory is more direct
   moveit_msgs::JointConstraint joint1_constraint;
@@ -268,7 +310,7 @@ bool pregrasp(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
   path_constraints.joint_constraints.push_back(joint1_constraint);
   move_group.setPathConstraints(path_constraints);
 
-  ROS_INFO("Making movegroup plan to target pose: X: %f | Y: %f |  Z: %f", target_pose.position.x, target_pose.position.y, target_pose.position.z);
+  ROS_INFO("Making movegroup plan to pregrasp pose: X: %f | Y: %f |  Z: %f", pregrasp_pose.position.x, pregrasp_pose.position.y, pregrasp_pose.position.z);
 
   moveit::planning_interface::MoveGroupInterface::Plan my_plan;
   bool success = (move_group.plan(my_plan) == moveit::planning_interface::MoveItErrorCode::SUCCESS);
@@ -288,25 +330,6 @@ bool pregrasp(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
   ros::Duration(3).sleep();
   move_group.move();
 
-  if(gazebo) {
-    // Wait 2 seconds for controller to finish (sometimes "controller failed during execution", but the arm still reaches the goal pose)
-    ros::Duration(2).sleep();
-
-    // Call service to evaluate target alignment
-    blitzcrank::GetTargetAlignment get_target_alignment;
-    get_target_alignment.request.parent = "coke_marker::marker_link";
-    get_target_alignment.request.child = "j2s6s300::j2s6s300_link_finger_tip_1";
-    get_target_alignment.request.desired_transform.translation.x = APPROACH_DISTANCE*cos(rot_angle);
-    get_target_alignment.request.desired_transform.translation.y = APPROACH_DISTANCE*sin(rot_angle);
-    get_target_alignment.request.desired_transform.translation.z + 0.06;
-
-    if (getAlignmentClient.call(get_target_alignment)) {
-      ROS_INFO("Translation error (2D for now): %f", get_target_alignment.response.translation_error);
-    } else {
-      ROS_ERROR("Failed to call service get_target_alignment (are Gazebo and gazebo_interface running?)");
-    }
-  }
-
   // Since we set the start state we have to clear it before planning other paths
   move_group.setStartStateToCurrentState();
 
@@ -319,10 +342,6 @@ int main(int argc, char** argv) {
   ros::NodeHandle node_handle("~");
   ros::AsyncSpinner spinner(1);
   spinner.start();
-
-  if(node_handle.hasParam("gazebo")) {
-    node_handle.getParam("gazebo", gazebo);
-  }
 
   if(node_handle.hasParam("root_frame")) {
     node_handle.getParam("root_frame", root_frame);
@@ -344,11 +363,11 @@ int main(int argc, char** argv) {
 
   set_grasp_target_pub = node_handle.advertise<geometry_msgs::TransformStamped>("/set_grasp_target", 1);
 
-  getAlignmentClient = node_handle.serviceClient<blitzcrank::GetTargetAlignment>("/gazebo_interface/get_target_alignment");
-
   getPlanningSceneClient = node_handle.serviceClient<moveit_msgs::GetPlanningScene>("/get_planning_scene");
 
   ros::ServiceServer pregrasp_server = node_handle.advertiseService("/kinova_manipulation/pregrasp", pregrasp);
+
+  ros::ServiceServer add_collision_objects_server = node_handle.advertiseService("/kinova_manipulation/add_collision_objects", add_collision_objects);
 
   ros::spin();
   return 0;

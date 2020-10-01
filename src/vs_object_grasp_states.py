@@ -42,6 +42,20 @@ class MoveHeadObject(smach.State):
 
         return 'success'
 
+class ClearOctomap(smach.State):
+    """
+    Clear the planning scene's octomap
+    """
+
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['success'])
+
+    def execute(self, userdata):
+        rospy.wait_for_service('/clear_octomap')
+        clear_octomap = rospy.ServiceProxy('/clear_octomap', Trigger)
+        clear_octomap()
+        return 'success'
+
 class CloseGripper(smach.State):
     """
     Close Kinova gripper
@@ -67,6 +81,27 @@ class OpenGripper(smach.State):
         # TODO implement using kinova driver, or actions... This is a hacky way to do it
         os.system('rosrun kinova_demo fingers_action_client.py j2s6s300 kinova percent 0 0 0')
         return 'success'
+
+class AddCollisionObjects(smach.State):
+    """
+    Add ground and side planes, add target object cylinder
+    """
+
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['success', 'failure'])
+
+    def execute(self, userdata):
+        try:
+            rospy.wait_for_service('/kinova_manipulation/add_collision_objects')
+            add_objects = rospy.ServiceProxy('/kinova_manipulation/add_collision_objects', Trigger)
+            result = add_objects()
+        except rospy.ServiceException, e:
+            rospy.logerr("add_collision_objects service failed: %s" % e)
+            return 'failure'
+        if result.success:
+            return 'success'
+        else:
+            return 'failure'
 
 class Pregrasp(smach.State):
     """

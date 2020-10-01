@@ -15,6 +15,7 @@
   <depend>std_msgs</depend>
   <depend>std_srvs</depend>
   <depend>geometry_msgs</depend>
+  <depend>darknet_ros_py</depend>
   <depend>kinova_msgs</depend>
   <depend>mbot_perception_msgs</depend>
   <depend>moveit_msgs</depend>

@@ -9,6 +9,7 @@ find_package(catkin REQUIRED
     std_msgs
     std_srvs
     geometry_msgs
+    darknet_ros_py
     kinova_msgs
     mbot_perception_msgs
     moveit_msgs

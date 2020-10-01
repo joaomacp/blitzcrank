@@ -7,7 +7,6 @@
 
     <remap from="/joint_states" to="/$(arg arm_name)/joint_states" />
     <node pkg="blitzcrank" type="pregrasp_service" name="pregrasp_service" output="screen">
-        <param name="gazebo" value="$(arg gazebo)" />
         <param name="root_frame" value="$(arg root_frame)" />
         <param name="target_frame" value="$(arg target_frame)" />
     </node>
