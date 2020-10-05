@@ -1,7 +1,5 @@
 <launch>
-    <arg name="gazebo" default="false" />
-    <arg name="root_frame" default="world" if="$(arg gazebo)" />
-    <arg name="root_frame" default="base_link" unless="$(arg gazebo)" />
+    <arg name="root_frame" default="base_link" />
     <arg name="arm_name" default="kinova" />
 
     <remap from="/joint_states" to="/$(arg arm_name)/joint_states" />

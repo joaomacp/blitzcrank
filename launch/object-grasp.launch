@@ -1,7 +1,12 @@
 <launch>
     <arg name="use_localizer" default="true" />
+    <arg name="target_tracking" default="false" />
+
+    <param name="target_tracking" value="$(arg target_tracking)" />
     
     <group if="$(arg use_localizer)">
+        <!-- Target object pose is given by object localizer (YOLO + depth) -->
+
         <param name="target_frame" value="localized_object" />
 
         <param name="target_object_class" value="bottle" />
@@ -15,6 +20,8 @@
     </group>
     
     <group unless="$(arg use_localizer)">
+        <!-- Target object pose is given by ALVAR marker -->
+
         <param name="target_frame" value="target_marker" />
     </group>
 
@@ -22,5 +29,13 @@
     <include file="$(find blitzcrank)/launch/ar-track.launch" />
 
     <include file="$(find blitzcrank)/launch/pregrasp-service.launch" />
-    <include file="$(find blitzcrank)/launch/visual-servoing.launch" />
+    <include file="$(find blitzcrank)/launch/visual-servoing.launch">
+        <group if="target_tracking">
+            <arg name="target_frame" value="localized_object" if="use_localizer" />
+            <arg name="target_frame" value="target_marker" unless="use_localizer" />
+        </group>
+        <group unless="target_tracking">
+            <arg name="target_frame" value="grasp_target" />
+        </group>
+    </include>
 </launch>

@@ -33,6 +33,8 @@ ros::Publisher set_grasp_target_pub;
 
 ros::ServiceClient getPlanningSceneClient;
 
+bool target_tracking;
+
 bool add_collision_objects(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res) {
   // Get target pose, to place collision cylinder
   geometry_msgs::TransformStamped targetTransform;
@@ -253,11 +255,11 @@ bool pregrasp(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
     return true;
   }
 
-  // Publish grasp target once: will be republished by the transform_republish node
-  // TODO parameterize: don't do this if we want continuous detection - in that case, visual servo will republish the tf.
-  setGraspTargetTransform = targetTransform; // copy
-  set_grasp_target_pub.publish(setGraspTargetTransform);
-
+  if(!target_tracking) {
+    // Publish grasp target once: will be republished by the transform_republish node
+    set_grasp_target_pub.publish(targetTransform);
+  }
+  
   static const std::string PLANNING_GROUP = "arm";
 
   moveit::planning_interface::MoveGroupInterface move_group(PLANNING_GROUP);
@@ -328,6 +330,14 @@ int main(int argc, char** argv) {
     ros::shutdown();
   }
   ROS_INFO("Target frame: %s", target_frame.c_str());
+
+  if(node_handle.hasParam("target_tracking")) {
+    node_handle.getParam("target_tracking", target_tracking);
+  } else {
+    ROS_ERROR("'target_tracking' param not given");
+    ros::shutdown();
+  }
+  ROS_INFO("Target tracking: %s", target_tracking ? "Enabled" : "Disabled");
 
   tf2_ros::TransformListener tfListener(tfBuffer);
 

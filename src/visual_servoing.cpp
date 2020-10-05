@@ -20,10 +20,13 @@ tf::StampedTransform targetTf, vTf;
 tf::Transform errorTf;
 
 double visual_servoing_k, visual_servoing_speed_cap, visual_servoing_stopping_distance;
+bool target_tracking;
 
 bool visual_servo(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res) {
-  // Obtain the target transform once, at the start (assuming robot remains still while servoing)
-  targetTransform = tfBuffer.lookupTransform("root", target_frame, ros::Time(0), ros::Duration(5.0));
+  if(!target_tracking) {
+    // Obtain the target transform once, at the start (assuming robot remains still while servoing)
+    targetTransform = tfBuffer.lookupTransform("root", target_frame, ros::Time(0), ros::Duration(5.0));
+  }
   
   ros::Rate vs_rate(20); // 20Hz
 
@@ -33,11 +36,9 @@ bool visual_servo(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &
     try{
       eefMarkerVisionTransform = tfBuffer.lookupTransform("root", "grasp_tool", ros::Time(0), ros::Duration(5.0));
 
-      // Instead of continuously tracking the target object, we assume body and head are stopped while
-      // servoing, and use the target transform obtained initially. This solves the occlusion problem
-      // (when using the object localizer, the object's central point becomes occluded by the robot's
-      // finger, causing a depth-estimation error)
-      //targetTransform = tfBuffer.lookupTransform("root", target_frame, ros::Time(0), ros::Duration(5.0));
+      if(target_tracking) {
+        targetTransform = tfBuffer.lookupTransform("root", target_frame, ros::Time(0), ros::Duration(5.0));
+      }
     }
     catch (tf2::TransformException &ex) {
       ROS_ERROR("Error getting eef marker transform: %s",ex.what());
@@ -161,6 +162,14 @@ int main(int argc, char** argv) {
     ros::shutdown();
   }
   ROS_INFO("Visual-servoing stopping distance: %f", visual_servoing_stopping_distance);
+
+  if(node_handle.hasParam("target_tracking")) {
+    node_handle.getParam("target_tracking", target_tracking);
+  } else {
+    ROS_ERROR("'target_tracking' param not given");
+    ros::shutdown();
+  }
+  ROS_INFO("Target tracking: %s", target_tracking ? "Enabled" : "Disabled");
 
   tf2_ros::TransformListener tfListener(tfBuffer);
 
