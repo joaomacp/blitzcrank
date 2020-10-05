@@ -64,6 +64,10 @@ bool add_collision_objects(std_srvs::Trigger::Request &req, std_srvs::Trigger::R
   cylinder_pose.position.y = targetTransform.transform.translation.y;
   cylinder_pose.position.z = targetTransform.transform.translation.z;
 
+  tf2::Quaternion cylinder_quat;
+  cylinder_quat.setRPY(0, 1.57, 0);
+  tf2::convert(cylinder_quat, cylinder_pose.orientation);
+
   // Ground plane
   moveit_msgs::CollisionObject ground_collision_object;
   ground_collision_object.header.frame_id = "base_link";
@@ -215,33 +219,24 @@ geometry_msgs::Pose get_pregrasp_pose(geometry_msgs::TransformStamped targetTran
   }
 
   // Modify pregrasp pose based on bounding box (vertical vs horizontal)
-  tf2::Quaternion q_rot, q_rot_2, q_rot_3, q_new;
+  tf2::Quaternion eef_quat;
   if(bounding_box.height > bounding_box.width*1.3) {
     ROS_INFO("Vertical bounding box: pregrasp pose with flat hand");
 
-    // TODO simplify these multiplications
-    q_rot.setRPY(0, 1.57, 0);
-
-    q_rot_2.setRPY(1.57, 0, 0);
-
-    q_rot_3.setRPY(0, 0, YAW_ANGLE);
-
-    q_new = q_rot_3*q_rot_2*q_rot;
+    eef_quat.setRPY(1.57, 1.57, YAW_ANGLE);
   }
   else {
     ROS_INFO("Horizontal bounding box: pregrasp pose with angled hand");
 
-    q_rot.setRPY(0, 2.3, 0.7);
+    tf2::Quaternion hand_yaw;
+    hand_yaw.setRPY(0, 0, 1.57);
 
-    // EEF rotation (finger positioning)
-    q_rot_2.setRPY(0, 0, 1.57);
-
-    q_new = q_rot*q_rot_2;
+    eef_quat.setRPY(0, 2.3, 0.7);
+    eef_quat *= hand_yaw;
+    eef_quat.normalize();
   }
 
-  q_new.normalize();
-
-  tf2::convert(q_new, pregrasp_pose.orientation);
+  tf2::convert(eef_quat, pregrasp_pose.orientation);
 
   return pregrasp_pose;
 }
