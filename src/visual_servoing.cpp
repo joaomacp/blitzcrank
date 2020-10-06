@@ -31,7 +31,7 @@ bool visual_servo(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &
   ros::Rate vs_rate(20); // 20Hz
 
   while(true) {
-    ROS_INFO("----------");
+    //ROS_INFO("----------");
 
     try{
       eefMarkerVisionTransform = tfBuffer.lookupTransform("root", "grasp_tool", ros::Time(0), ros::Duration(5.0));
@@ -46,15 +46,15 @@ bool visual_servo(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &
       res.message = "Error getting eef marker transform";
       return true;
     }
-    ROS_INFO("eefMarkerVisionTransform: X %f | Y %f | Z %f", eefMarkerVisionTransform.transform.translation.x, eefMarkerVisionTransform.transform.translation.y, eefMarkerVisionTransform.transform.translation.z);
-    ROS_INFO("targetTransform: X %f | Y %f | Z %f", targetTransform.transform.translation.x, targetTransform.transform.translation.y, targetTransform.transform.translation.z);
+    //ROS_INFO("eefMarkerVisionTransform: X %f | Y %f | Z %f", eefMarkerVisionTransform.transform.translation.x, eefMarkerVisionTransform.transform.translation.y, eefMarkerVisionTransform.transform.translation.z);
+    //ROS_INFO("targetTransform: X %f | Y %f | Z %f", targetTransform.transform.translation.x, targetTransform.transform.translation.y, targetTransform.transform.translation.z);
 
 
     tf::transformStampedMsgToTF(eefMarkerVisionTransform, vTf); // vision
     tf::transformStampedMsgToTF(targetTransform, targetTf);
 
-    ROS_INFO("vTf: X %f | Y %f | Z %f", vTf.getOrigin().getX(), vTf.getOrigin().getY(), vTf.getOrigin().getZ());
-    ROS_INFO("targetTf: X %f | Y %f | Z %f", targetTf.getOrigin().getX(), targetTf.getOrigin().getY(), targetTf.getOrigin().getZ());
+    //ROS_INFO("vTf: X %f | Y %f | Z %f", vTf.getOrigin().getX(), vTf.getOrigin().getY(), vTf.getOrigin().getZ());
+    //ROS_INFO("targetTf: X %f | Y %f | Z %f", targetTf.getOrigin().getX(), targetTf.getOrigin().getY(), targetTf.getOrigin().getZ());
 
     // Discarding rotation, because we only care about translation
     //vTf.setRotation(tf::Quaternion(0, 0, 0, 1));
@@ -68,13 +68,13 @@ bool visual_servo(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &
     //errorTf = (vTf*mTf).inverseTimes(targetTf);
     errorTf = vTf.inverseTimes(targetTf);
 
-    ROS_INFO("errorTf: X %f | Y %f | Z %f", errorTf.getOrigin().getX(), errorTf.getOrigin().getY(), errorTf.getOrigin().getZ());
+    //ROS_INFO("errorTf: X %f | Y %f | Z %f", errorTf.getOrigin().getX(), errorTf.getOrigin().getY(), errorTf.getOrigin().getZ());
 
     tf::transformTFToMsg(errorTf, errorTransform);
 
-    ROS_INFO("errorTransform: X %f | Y %f | Z %f", errorTransform.translation.x, errorTransform.translation.y, errorTransform.translation.z);
+    //ROS_INFO("errorTransform: X %f | Y %f | Z %f", errorTransform.translation.x, errorTransform.translation.y, errorTransform.translation.z);
 
-    ROS_INFO("----------");
+    //ROS_INFO("----------");
 
     double magnitude = sqrt( pow(errorTransform.translation.x, 2.0) + pow(errorTransform.translation.y, 2.0) + pow(errorTransform.translation.z, 2.0) );
     if(magnitude < visual_servoing_stopping_distance) {
@@ -109,7 +109,7 @@ bool visual_servo(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &
       errorTransform.translation.z *= visual_servoing_speed_cap;
     }
 
-    ROS_INFO("Sending x: %f,y: %f,z: %f", errorTransform.translation.x, errorTransform.translation.y, errorTransform.translation.z);
+    //ROS_INFO("Sending x: %f,y: %f,z: %f", errorTransform.translation.x, errorTransform.translation.y, errorTransform.translation.z);
 
     geometry_msgs::TwistStamped twist;
     twist.header.stamp = ros::Time::now();
@@ -163,10 +163,10 @@ int main(int argc, char** argv) {
   }
   ROS_INFO("Visual-servoing stopping distance: %f", visual_servoing_stopping_distance);
 
-  if(node_handle.hasParam("target_tracking")) {
-    node_handle.getParam("target_tracking", target_tracking);
+  if(node_handle.hasParam("/target_tracking")) {
+    node_handle.getParam("/target_tracking", target_tracking);
   } else {
-    ROS_ERROR("'target_tracking' param not given");
+    ROS_ERROR("'/target_tracking' param not given");
     ros::shutdown();
   }
   ROS_INFO("Target tracking: %s", target_tracking ? "Enabled" : "Disabled");

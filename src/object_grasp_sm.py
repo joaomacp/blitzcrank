@@ -115,9 +115,9 @@ def object_grasp_sm():
 if __name__ == '__main__':
     rospy.init_node('object_grasp_sm', anonymous=False)
 
-    if not rospy.has_param('target_frame'):
-        rospy.signal_shutdown('"target_frame" param not found')
-    target_frame = rospy.get_param('target_frame')
+    if not rospy.has_param('/pregrasp_service/target_frame'):
+        rospy.signal_shutdown('"/pregrasp_service/target_frame" param not found')
+    target_frame = rospy.get_param('/pregrasp_service/target_frame')
 
     listener = tf.TransformListener()
     mbot(enabled_components=['perception', 'hri'])

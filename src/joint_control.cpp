@@ -114,7 +114,7 @@ void check_timestamp(const ros::TimerEvent&) {
 }
 
 int main(int argc, char** argv){
-  ros::init(argc, argv, "blitzcrank_traj_control");
+  ros::init(argc, argv, "mbot_kinova_joint_control");
 
   ros::NodeHandle nh("~");
   ros::AsyncSpinner spinner(3);
@@ -143,9 +143,10 @@ int main(int argc, char** argv){
 
   joint_vel_pub = nh.advertise<kinova_msgs::JointVelocity>("/kinova_driver/in/joint_velocity", 1000);
 
+  ros::Timer vs_timer;
   if(!gazebo) {
     // 0.01s period - 100Hz frequency required by Kinova driver - see https://github.com/Kinovarobotics/kinova-ros#velocity-control-for-joint-space-and-cartesian-space
-    ros::Timer vs_timer = nh.createTimer(ros::Duration(0.01), publish_kinova_joint_vels);
+    vs_timer = nh.createTimer(ros::Duration(0.01), publish_kinova_joint_vels);
   }
 
   // At 1Hz, check if a velocity message was received in the last second. If not, stop servoing

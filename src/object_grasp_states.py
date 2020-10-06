@@ -28,13 +28,9 @@ class MoveHeadObject(smach.State):
         self.target_frame = target_frame
 
     def execute(self, userdata):
-        rospy.sleep(2)
         try:
             (trans, _) = self.tf_listener.lookupTransform('base_link', self.target_frame, rospy.Time(0))
-            rospy.loginfo('trans: %f %f' % (trans[0], trans[1]))
             heading_rad = (math.pi/2) - math.atan2(trans[1], trans[0])
-            rospy.loginfo('heading rad: %f' % heading_rad)
-            rospy.loginfo('rotating head: %f' % (math.degrees(heading_rad) + 15))
             mbot().hri.rotate_head_value(math.degrees(heading_rad) + 15, 15, True)
             rospy.sleep(1) # Let camera image stabilize, so that object pose is correct
         except (tf.LookupException, tf.ConnectivityException, tf.ExtrapolationException), e:

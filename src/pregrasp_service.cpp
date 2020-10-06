@@ -66,10 +66,6 @@ bool add_collision_objects(std_srvs::Trigger::Request &req, std_srvs::Trigger::R
   cylinder_pose.position.y = targetTransform.transform.translation.y;
   cylinder_pose.position.z = targetTransform.transform.translation.z;
 
-  tf2::Quaternion cylinder_quat;
-  cylinder_quat.setRPY(0, 1.57, 0);
-  tf2::convert(cylinder_quat, cylinder_pose.orientation);
-
   // Ground plane
   moveit_msgs::CollisionObject ground_collision_object;
   ground_collision_object.header.frame_id = "base_link";
@@ -183,12 +179,6 @@ bool add_collision_objects(std_srvs::Trigger::Request &req, std_srvs::Trigger::R
 
 // Calculate the pregrasp pose based on the object's bounding box (currently), or object class (todo), or other factors like table plane... (todo)
 geometry_msgs::Pose get_pregrasp_pose(geometry_msgs::TransformStamped targetTransform) {
-  std::string target_object_class;
-  if (!ros::param::get("/target_object_class", target_object_class)) {
-    ROS_ERROR("'/target_object_class' param not given");
-    ros::shutdown();
-  }
-
   geometry_msgs::Pose pregrasp_pose;
 
   const double YAW_ANGLE = 0.7;
@@ -200,45 +190,58 @@ geometry_msgs::Pose get_pregrasp_pose(geometry_msgs::TransformStamped targetTran
   pregrasp_pose.position.y = targetTransform.transform.translation.y + APPROACH_DISTANCE*sin(rot_angle);
   pregrasp_pose.position.z = targetTransform.transform.translation.z + 0.06;
   
-  // Get object's bounding box
-  sensor_msgs::RegionOfInterest bounding_box;
-  bool found_bounding_box = false;
-  bool tries = 4;
-  for(int attempts = 0; attempts < 4; attempts++) {
-    darknet_ros_py::RecognizedObjectArrayStampedConstPtr object_list = ros::topic::waitForMessage<darknet_ros_py::RecognizedObjectArrayStamped>("/mbot_perception/generic_detector/detections", ros::Duration(5.0));
+  if(target_frame == "target_marker") {
+    // Using ALVAR marker as servoing target. Set pregrasp pose to flat hand
+    tf2::Quaternion eef_quat;
+    eef_quat.setRPY(M_PI/2, 0, YAW_ANGLE + (M_PI/2));
+    tf2::convert(eef_quat, pregrasp_pose.orientation);
+  }
+  else if(target_frame == "localized_object") {
+    std::string target_object_class;
+    if (!ros::param::get("/target_object_class", target_object_class)) {
+      ROS_ERROR("'/target_object_class' param not given");
+      ros::shutdown();
+    }
+    // Get object's bounding box
+    sensor_msgs::RegionOfInterest bounding_box;
+    bool found_bounding_box = false;
+    bool tries = 4;
+    for(int attempts = 0; attempts < 4; attempts++) {
+      darknet_ros_py::RecognizedObjectArrayStampedConstPtr object_list = ros::topic::waitForMessage<darknet_ros_py::RecognizedObjectArrayStamped>("/mbot_perception/generic_detector/detections", ros::Duration(5.0));
 
-    for(const auto& obj: object_list->objects.objects) {
-      if(obj.class_name == target_object_class) {
-        bounding_box = obj.bounding_box;
-        found_bounding_box = true;
-        break;
+      for(const auto& obj: object_list->objects.objects) {
+        if(obj.class_name == target_object_class) {
+          bounding_box = obj.bounding_box;
+          found_bounding_box = true;
+          break;
+        }
       }
     }
+    if(!found_bounding_box) {
+      ROS_ERROR("Couldn't obtain YOLO bounding box of target object");
+      ros::shutdown();
+    }
+
+    // Modify pregrasp pose based on bounding box (vertical vs horizontal)
+    tf2::Quaternion eef_quat;
+    if(bounding_box.height > bounding_box.width*1.3) {
+      ROS_INFO("Vertical bounding box: pregrasp pose with flat hand");
+
+      eef_quat.setRPY(M_PI/2, 0, YAW_ANGLE + (M_PI/2));
+    }
+    else {
+      ROS_INFO("Horizontal bounding box: pregrasp pose with angled hand");
+
+      tf2::Quaternion hand_yaw;
+      hand_yaw.setRPY(0, 0, M_PI/2);
+
+      eef_quat.setRPY(0, 2.3, 0.7);
+      eef_quat *= hand_yaw;
+      eef_quat.normalize();
+    }
+
+    tf2::convert(eef_quat, pregrasp_pose.orientation);
   }
-  if(!found_bounding_box) {
-    ROS_ERROR("Couldn't obtain YOLO bounding box of target object");
-    ros::shutdown();
-  }
-
-  // Modify pregrasp pose based on bounding box (vertical vs horizontal)
-  tf2::Quaternion eef_quat;
-  if(bounding_box.height > bounding_box.width*1.3) {
-    ROS_INFO("Vertical bounding box: pregrasp pose with flat hand");
-
-    eef_quat.setRPY(1.57, 1.57, YAW_ANGLE);
-  }
-  else {
-    ROS_INFO("Horizontal bounding box: pregrasp pose with angled hand");
-
-    tf2::Quaternion hand_yaw;
-    hand_yaw.setRPY(0, 0, 1.57);
-
-    eef_quat.setRPY(0, 2.3, 0.7);
-    eef_quat *= hand_yaw;
-    eef_quat.normalize();
-  }
-
-  tf2::convert(eef_quat, pregrasp_pose.orientation);
 
   return pregrasp_pose;
 }
@@ -312,7 +315,7 @@ bool pregrasp(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res)
 int main(int argc, char** argv) {
   ros::init(argc, argv, "pregrasp_service");
   ros::NodeHandle node_handle("~");
-  ros::AsyncSpinner spinner(1);
+  ros::AsyncSpinner spinner(2);
   spinner.start();
 
   if(node_handle.hasParam("root_frame")) {
@@ -331,10 +334,10 @@ int main(int argc, char** argv) {
   }
   ROS_INFO("Target frame: %s", target_frame.c_str());
 
-  if(node_handle.hasParam("target_tracking")) {
-    node_handle.getParam("target_tracking", target_tracking);
+  if(node_handle.hasParam("/target_tracking")) {
+    node_handle.getParam("/target_tracking", target_tracking);
   } else {
-    ROS_ERROR("'target_tracking' param not given");
+    ROS_ERROR("'/target_tracking' param not given");
     ros::shutdown();
   }
   ROS_INFO("Target tracking: %s", target_tracking ? "Enabled" : "Disabled");
