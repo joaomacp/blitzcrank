@@ -1,13 +1,13 @@
 <launch>
+    <arg name="gazebo" default="false" />
     <arg name="use_localizer" default="true" />
     <arg name="target_tracking" default="false" />
 
     <param name="target_tracking" value="$(arg target_tracking)" />
     
     <group if="$(arg use_localizer)">
-        <!-- Target object pose is given by object localizer (YOLO + depth) -->
-
-        <param name="target_frame" value="localized_object" />
+        <arg name="target_frame" value="localized_object" if="$(arg target_tracking)" />
+        <arg name="target_frame" value="grasp_target" unless="$(arg target_tracking)" />
 
         <param name="target_object_class" value="bottle" />
 
@@ -18,24 +18,25 @@
 
         <node pkg="blitzcrank" type="object_localizer_republish" name="object_localizer_republish" />
     </group>
-    
     <group unless="$(arg use_localizer)">
-        <!-- Target object pose is given by ALVAR marker -->
-
-        <param name="target_frame" value="target_marker" />
+        <arg name="target_frame" value="target_marker" if="$(arg target_tracking)" />
+        <arg name="target_frame" value="grasp_target" unless="$(arg target_tracking)" />
     </group>
-
+    
     <include file="$(find mbot_kinova_arm_moveit)/launch/kinova_demo.launch" />
     <include file="$(find blitzcrank)/launch/ar-track.launch" />
 
-    <include file="$(find blitzcrank)/launch/pregrasp-service.launch" />
+    <include file="$(find blitzcrank)/launch/pregrasp-service.launch">
+        <arg name="target_frame" value="localized_object" if="$(arg use_localizer)" />
+        <arg name="target_frame" value="target_marker" unless="$(arg use_localizer)" />
+    </include>
+
     <include file="$(find blitzcrank)/launch/visual-servoing.launch">
-        <group if="target_tracking">
-            <arg name="target_frame" value="localized_object" if="use_localizer" />
-            <arg name="target_frame" value="target_marker" unless="use_localizer" />
-        </group>
-        <group unless="target_tracking">
-            <arg name="target_frame" value="grasp_target" />
-        </group>
+        <arg name="gazebo" value="$(arg gazebo)" />
+
+        <arg name="target_frame" value="grasp_target" unless="$(arg target_tracking)" />
+
+        <arg name="target_frame" value="localized_object" if="$(eval arg('target_tracking') and arg('use_localizer'))" />
+        <arg name="target_frame" value="target_marker" if="$(eval arg('target_tracking') and arg('use_localizer')==False)" />
     </include>
 </launch>

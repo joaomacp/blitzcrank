@@ -11,7 +11,7 @@
     <param name="visual_servoing_stopping_distance" value="0.025" />
   </node>
 
-  <node pkg="blitzcrank" type="joint_control" name="blitzcrank_traj_control" output="screen">
+  <node pkg="blitzcrank" type="joint_control" name="mbot_kinova_joint_control" output="screen">
     <param name="gazebo" value="$(arg gazebo)" />
     <param name="debug" value="$(arg debug)" />
   </node>
