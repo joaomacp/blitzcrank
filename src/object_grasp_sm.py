@@ -24,20 +24,21 @@ def object_grasp_sm():
 
     with sm:
 
-        # Head angle should be centered before starting this SMach.
-        # Alternative (TODO): - add a "clear octomap" state - implement using PlanningSceneMonitor
-        #                     - turn head center - clear octomap - continue
-        # Also: for now, target object must be visible by the centered head.
+        # For now, target object must be visible by the centered head.
         # TODO if target object not present, move head left - try to add collision objects, move head right - try again
 
-        # Clear octomap voxels
-        sm.add('CLEAR_OCTOMAP', grasping_states.ClearOctomap(),
-                transitions={'success': 'TILT_CAMERA_DOWN'})
+        # Move head to center
+        sm.add('HEAD_FRONT', hri_states.MoveHeadNew(90, 15, True),
+               transitions={'success': 'TILT_CAMERA_DOWN',
+                            'failure': 'TILT_CAMERA_DOWN'})
 
         # Tilt camera down to see table and object
         sm.add('TILT_CAMERA_DOWN', percep_states.TiltHeadCam(-30),
-               transitions={'success': 'ADD_COLLISION_OBJECTS',
-                            'failure': 'ADD_COLLISION_OBJECTS'})
+               transitions={'success': 'CLEAR_OCTOMAP',
+                            'failure': 'CLEAR_OCTOMAP'})
+        # Clear octomap voxels
+        sm.add('CLEAR_OCTOMAP', grasping_states.ClearOctomap(),
+                transitions={'success': 'ADD_COLLISION_OBJECTS'})
 
         # Add MoveIt collision objects
         sm.add('ADD_COLLISION_OBJECTS', grasping_states.AddCollisionObjects(),
@@ -50,12 +51,8 @@ def object_grasp_sm():
                             'failure': 'HEAD_RIGHT'})
 
         sm.add('HEAD_RIGHT', hri_states.MoveHeadNew(140, 15, True),
-               transitions={'success': 'HEAD_FRONT',
-                            'failure': 'HEAD_FRONT'})      
-
-        sm.add('HEAD_FRONT', hri_states.MoveHeadNew(90, 15, True),
                transitions={'success': 'HEAD_OBJECT',
-                            'failure': 'HEAD_OBJECT'})
+                            'failure': 'HEAD_OBJECT'})      
 
         sm.add('HEAD_OBJECT', grasping_states.MoveHeadObject(listener, target_frame),
                transitions={'success': 'PREGRASP'})
