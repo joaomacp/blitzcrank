@@ -163,7 +163,7 @@ class MoveEefRelative(smach.State):
             return 'failure'
 
 # TODO - this belongs in manipulation_states
-class RestArm(smach.State):
+class SetArmResting(smach.State):
     """
     Place the kinova arm in its resting pose
     """
@@ -173,6 +173,21 @@ class RestArm(smach.State):
 
     def execute(self, userdata):
         if go_to_pose('mbot_resting', wait=True):
+            return 'success'
+        else:
+            return 'failure'
+
+# TODO - this belongs in manipulation_states
+class SetArmWalking(smach.State):
+    """
+    Place the kinova arm in its walking pose
+    """
+
+    def __init__(self):
+        smach.State.__init__(self, outcomes=['success', 'failure'])
+
+    def execute(self, userdata):
+        if go_to_pose('mbot_walking', wait=True):
             return 'success'
         else:
             return 'failure'

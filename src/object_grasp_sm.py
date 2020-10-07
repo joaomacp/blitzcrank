@@ -86,7 +86,7 @@ def object_grasp_sm():
         sm.add('OPEN_GRIPPER', grasping_states.OpenGripper(),
                 transitions={'success': 'REST_ARM'})
 
-        sm.add('REST_ARM', grasping_states.RestArm(),
+        sm.add('REST_ARM', grasping_states.SetArmResting(),
                 transitions={'success': 'OVERALL_SUCCESS',
                              'failure': 'OVERALL_FAILURE'})
 
