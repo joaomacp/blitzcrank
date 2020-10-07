@@ -41,7 +41,7 @@ def object_grasp_sm():
                 transitions={'success': 'ADD_COLLISION_OBJECTS'})
 
         # Add MoveIt collision objects
-        sm.add('ADD_COLLISION_OBJECTS', grasping_states.AddCollisionObjects(),
+        sm.add('ADD_COLLISION_OBJECTS', grasping_states.AddCollisionObjectsState(),
                 transitions={'success': 'HEAD_LEFT',
                             'failure': 'HEAD_LEFT'})
 

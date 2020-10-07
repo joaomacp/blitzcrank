@@ -7,6 +7,7 @@ import smach
 import tf
 
 from std_srvs.srv import Trigger, Empty
+from blitzcrank.srv import AddCollisionObjects
 
 # mbot robot class
 from mbot_robot_class_ros import mbot as mbot_class
@@ -78,19 +79,20 @@ class OpenGripper(smach.State):
         os.system('rosrun kinova_demo fingers_action_client.py j2s6s300 kinova percent 0 0 0')
         return 'success'
 
-class AddCollisionObjects(smach.State):
+class AddCollisionObjectsState(smach.State):
     """
     Add ground and side planes, add target object cylinder
     """
 
-    def __init__(self):
+    def __init__(self, add_target_cylinder=True):
         smach.State.__init__(self, outcomes=['success', 'failure'])
+        self.add_target_cylinder = add_target_cylinder
 
     def execute(self, userdata):
         try:
             rospy.wait_for_service('/kinova_manipulation/add_collision_objects')
-            add_objects = rospy.ServiceProxy('/kinova_manipulation/add_collision_objects', Trigger)
-            result = add_objects()
+            add_objects = rospy.ServiceProxy('/kinova_manipulation/add_collision_objects', AddCollisionObjects)
+            result = add_objects(self.add_target_cylinder)
         except rospy.ServiceException, e:
             rospy.logerr("add_collision_objects service failed: %s" % e)
             return 'failure'

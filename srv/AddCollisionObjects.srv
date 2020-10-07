@@ -1,0 +1,4 @@
+bool add_target_cylinder # add a cylinder at the target object's position
+---
+bool success   # indicate successful run of triggered service
+string message # informational, e.g. for error messages

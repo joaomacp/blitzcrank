@@ -28,6 +28,13 @@ find_package(catkin REQUIRED
 
 catkin_python_setup()
 
+add_service_files(
+  FILES
+  AddCollisionObjects.srv
+)
+
+generate_messages(DEPENDENCIES std_msgs geometry_msgs)
+
 catkin_package(
   CATKIN_DEPENDS
     roscpp
@@ -62,6 +69,8 @@ add_executable(object_localizer_republish src/object_localizer_republish.cpp)
 add_executable(visual_servoing src/visual_servoing.cpp)
 
 target_link_libraries(pregrasp_service ${catkin_LIBRARIES})
+add_dependencies(pregrasp_service ${PROJECT_NAME}_generate_messages_cpp ${catkin_EXPORTED_TARGETS})
+
 target_link_libraries(joint_control ${catkin_LIBRARIES})
 target_link_libraries(transform_republish ${catkin_LIBRARIES})
 target_link_libraries(object_localizer_republish ${catkin_LIBRARIES})

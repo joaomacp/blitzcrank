@@ -163,10 +163,10 @@ int main(int argc, char** argv) {
   }
   ROS_INFO("Visual-servoing stopping distance: %f", visual_servoing_stopping_distance);
 
-  if(node_handle.hasParam("/target_tracking")) {
-    node_handle.getParam("/target_tracking", target_tracking);
+  if(node_handle.hasParam("target_tracking")) {
+    node_handle.getParam("target_tracking", target_tracking);
   } else {
-    ROS_ERROR("'/target_tracking' param not given");
+    ROS_ERROR("'target_tracking' param not given");
     ros::shutdown();
   }
   ROS_INFO("Target tracking: %s", target_tracking ? "Enabled" : "Disabled");

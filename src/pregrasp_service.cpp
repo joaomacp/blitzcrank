@@ -20,6 +20,7 @@
 #include <sensor_msgs/RegionOfInterest.h>
 
 #include <std_srvs/Trigger.h>
+#include <blitzcrank/AddCollisionObjects.h>
 
 const double APPROACH_DISTANCE = 0.08;
 
@@ -35,36 +36,8 @@ ros::ServiceClient getPlanningSceneClient;
 
 bool target_tracking;
 
-bool add_collision_objects(std_srvs::Trigger::Request &req, std_srvs::Trigger::Response &res) {
-  // Get target pose, to place collision cylinder
-  geometry_msgs::TransformStamped targetTransform;
-  try {
-    targetTransform = tfBuffer.lookupTransform(root_frame, target_frame, ros::Time(0), ros::Duration(5.0));
-  } catch (tf2::TransformException &ex) {
-    ROS_ERROR("Error getting %s->target transform: %s", root_frame.c_str(), ex.what());
-    res.success = false;
-    res.message = "Error obtaining target transform";
-    return true;
-  }
-
+bool add_collision_objects(blitzcrank::AddCollisionObjects::Request &req, blitzcrank::AddCollisionObjects::Response &res) {
   moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
-
-
-  moveit_msgs::CollisionObject collision_object;
-  collision_object.header.frame_id = "base_link";
-  collision_object.id = "target_object";
-
-  // Define a cylinder which will be added to the world.
-  shape_msgs::SolidPrimitive primitive;
-  primitive.type = primitive.CYLINDER;
-  primitive.dimensions.resize(2);
-  primitive.dimensions[0] = 0.2; // Cylinder height
-  primitive.dimensions[1] = 0.03; // Cylinder radius
-
-  geometry_msgs::Pose cylinder_pose;
-  cylinder_pose.position.x = targetTransform.transform.translation.x;
-  cylinder_pose.position.y = targetTransform.transform.translation.y;
-  cylinder_pose.position.z = targetTransform.transform.translation.z;
 
   // Ground plane
   moveit_msgs::CollisionObject ground_collision_object;
@@ -104,74 +77,101 @@ bool add_collision_objects(std_srvs::Trigger::Request &req, std_srvs::Trigger::R
   side_pose.position.y = -0.85;
   side_pose.position.z = 0.5;
 
-  // Add cylinder as collision object
-  collision_object.primitives.push_back(primitive);
-  collision_object.primitive_poses.push_back(cylinder_pose);
-  collision_object.operation = collision_object.ADD;
-
   // Add ground plane as collision object
   ground_collision_object.primitives.push_back(box_primitive);
   ground_collision_object.primitive_poses.push_back(box_pose);
   ground_collision_object.operation = ground_collision_object.ADD;
+  planning_scene_interface.applyCollisionObject(ground_collision_object);
 
   // Add side plane as collision object
   side_collision_object.primitives.push_back(side_primitive);
   side_collision_object.primitive_poses.push_back(side_pose);
   side_collision_object.operation = side_collision_object.ADD;
-
-  // Apply collision objects
-  planning_scene_interface.applyCollisionObject(collision_object);
-  planning_scene_interface.applyCollisionObject(ground_collision_object);
   planning_scene_interface.applyCollisionObject(side_collision_object);
 
-  // Allow cylinder to collide with robot: the moveit planning scene API is complex:
-  // We request the current planning scene, modify its allowedcollisionmatrix to add an entry for "target_object",
-  // add a new row with all 1s (true values), and add a new column (a value to every row) also with 1s.
-  // Then we apply the planning scene as a diff.
-  moveit_msgs::GetPlanningScene::Request request;
-  request.components.components = request.components.SCENE_SETTINGS |
-                                  request.components.ROBOT_STATE |
-                                  request.components.ROBOT_STATE_ATTACHED_OBJECTS |
-                                  request.components.WORLD_OBJECT_NAMES |
-                                  request.components.WORLD_OBJECT_GEOMETRY |
-                                  request.components.OCTOMAP |
-                                  request.components.TRANSFORMS |
-                                  request.components.ALLOWED_COLLISION_MATRIX |
-                                  request.components.LINK_PADDING_AND_SCALING |
-                                  request.components.OBJECT_COLORS;
-
-  moveit_msgs::GetPlanningScene::Response response;
-
-  getPlanningSceneClient.call(request, response);
-
-  moveit_msgs::PlanningScene ps = response.scene;
-
-  // Check if "target_object" is already in the AllowedCollisionMatrix - in that case, nothing more is needed
-  for(int i = 0; i < ps.allowed_collision_matrix.entry_names.size(); i++) {
-    if(ps.allowed_collision_matrix.entry_names[i] == "target_object") {
-      res.success = true;
+  if(req.add_target_cylinder) {
+    // Get target pose, to place collision cylinder
+    geometry_msgs::TransformStamped targetTransform;
+    try {
+      targetTransform = tfBuffer.lookupTransform(root_frame, target_frame, ros::Time(0), ros::Duration(5.0));
+    } catch (tf2::TransformException &ex) {
+      ROS_ERROR("Error getting %s->target transform: %s", root_frame.c_str(), ex.what());
+      res.success = false;
+      res.message = "Error obtaining target transform";
       return true;
     }
+
+    moveit_msgs::CollisionObject collision_object;
+    collision_object.header.frame_id = "base_link";
+    collision_object.id = "target_object";
+
+    // Define a cylinder which will be added to the world.
+    shape_msgs::SolidPrimitive primitive;
+    primitive.type = primitive.CYLINDER;
+    primitive.dimensions.resize(2);
+    primitive.dimensions[0] = 0.2; // Cylinder height
+    primitive.dimensions[1] = 0.03; // Cylinder radius
+
+    geometry_msgs::Pose cylinder_pose;
+    cylinder_pose.position.x = targetTransform.transform.translation.x;
+    cylinder_pose.position.y = targetTransform.transform.translation.y;
+    cylinder_pose.position.z = targetTransform.transform.translation.z;
+
+    // Add cylinder as collision object
+    collision_object.primitives.push_back(primitive);
+    collision_object.primitive_poses.push_back(cylinder_pose);
+    collision_object.operation = collision_object.ADD;
+    planning_scene_interface.applyCollisionObject(collision_object);
+
+    // Allow cylinder to collide with robot: the moveit planning scene API is complex:
+    // We request the current planning scene, modify its allowedcollisionmatrix to add an entry for "target_object",
+    // add a new row with all 1s (true values), and add a new column (a value to every row) also with 1s.
+    // Then we apply the planning scene as a diff.
+    moveit_msgs::GetPlanningScene::Request request;
+    request.components.components = request.components.SCENE_SETTINGS |
+                                    request.components.ROBOT_STATE |
+                                    request.components.ROBOT_STATE_ATTACHED_OBJECTS |
+                                    request.components.WORLD_OBJECT_NAMES |
+                                    request.components.WORLD_OBJECT_GEOMETRY |
+                                    request.components.OCTOMAP |
+                                    request.components.TRANSFORMS |
+                                    request.components.ALLOWED_COLLISION_MATRIX |
+                                    request.components.LINK_PADDING_AND_SCALING |
+                                    request.components.OBJECT_COLORS;
+
+    moveit_msgs::GetPlanningScene::Response response;
+
+    getPlanningSceneClient.call(request, response);
+
+    moveit_msgs::PlanningScene ps = response.scene;
+
+    // Check if "target_object" is already in the AllowedCollisionMatrix - in that case, nothing more is needed
+    for(int i = 0; i < ps.allowed_collision_matrix.entry_names.size(); i++) {
+      if(ps.allowed_collision_matrix.entry_names[i] == "target_object") {
+        res.success = true;
+        return true;
+      }
+    }
+
+    // Continue: modify the obtained PlanningScene by adding "target_object" to the AllowedCollisionMatrix
+    ps.robot_state.is_diff = true;
+    ps.is_diff = true;
+    ps.allowed_collision_matrix.entry_names.push_back("target_object");
+
+    // Add row for target object entry, collision allowed = true for every other object
+    moveit_msgs::AllowedCollisionEntry target_object_entry;
+    for(int i = 0; i < response.scene.allowed_collision_matrix.entry_names.size(); i++) {
+      target_object_entry.enabled.push_back(true);
+    }
+    ps.allowed_collision_matrix.entry_values.push_back(target_object_entry);
+
+    // For every row (object), set collision allowed = true when colliding with target object
+    for(int i = 0; i < ps.allowed_collision_matrix.entry_values.size(); i++) {
+      ps.allowed_collision_matrix.entry_values[i].enabled.push_back(true);
+    }
+
+    planning_scene_interface.applyPlanningScene(ps);
   }
-
-  // Continue: modify the obtained PlanningScene by adding "target_object" to the AllowedCollisionMatrix
-  ps.robot_state.is_diff = true;
-  ps.is_diff = true;
-  ps.allowed_collision_matrix.entry_names.push_back("target_object");
-
-  // Add row for target object entry, collision allowed = true for every other object
-  moveit_msgs::AllowedCollisionEntry target_object_entry;
-  for(int i = 0; i < response.scene.allowed_collision_matrix.entry_names.size(); i++) {
-    target_object_entry.enabled.push_back(true);
-  }
-  ps.allowed_collision_matrix.entry_values.push_back(target_object_entry);
-
-  // For every row (object), set collision allowed = true when colliding with target object
-  for(int i = 0; i < ps.allowed_collision_matrix.entry_values.size(); i++) {
-    ps.allowed_collision_matrix.entry_values[i].enabled.push_back(true);
-  }
-
-  planning_scene_interface.applyPlanningScene(ps);
 
   res.success = true;
   return true;
@@ -334,10 +334,10 @@ int main(int argc, char** argv) {
   }
   ROS_INFO("Target frame: %s", target_frame.c_str());
 
-  if(node_handle.hasParam("/target_tracking")) {
-    node_handle.getParam("/target_tracking", target_tracking);
+  if(node_handle.hasParam("target_tracking")) {
+    node_handle.getParam("target_tracking", target_tracking);
   } else {
-    ROS_ERROR("'/target_tracking' param not given");
+    ROS_ERROR("'target_tracking' param not given");
     ros::shutdown();
   }
   ROS_INFO("Target tracking: %s", target_tracking ? "Enabled" : "Disabled");

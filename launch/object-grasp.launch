@@ -2,8 +2,6 @@
     <arg name="gazebo" default="false" />
     <arg name="use_localizer" default="true" />
     <arg name="target_tracking" default="false" />
-
-    <param name="target_tracking" value="$(arg target_tracking)" />
     
     <group if="$(arg use_localizer)">
         <arg name="target_frame" value="localized_object" if="$(arg target_tracking)" />
@@ -29,6 +27,8 @@
     <include file="$(find blitzcrank)/launch/pregrasp-service.launch">
         <arg name="target_frame" value="localized_object" if="$(arg use_localizer)" />
         <arg name="target_frame" value="target_marker" unless="$(arg use_localizer)" />
+
+        <arg name="target_tracking" value="$(arg target_tracking)" />
     </include>
 
     <include file="$(find blitzcrank)/launch/visual-servoing.launch">
@@ -38,5 +38,7 @@
 
         <arg name="target_frame" value="localized_object" if="$(eval arg('target_tracking') and arg('use_localizer'))" />
         <arg name="target_frame" value="target_marker" if="$(eval arg('target_tracking') and arg('use_localizer')==False)" />
+
+        <arg name="target_tracking" value="$(arg target_tracking)" />
     </include>
 </launch>
