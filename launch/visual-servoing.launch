@@ -17,5 +17,5 @@
     <param name="gazebo" value="$(arg gazebo)" />
     <param name="debug" value="$(arg debug)" />
   </node>
-<node pkg="tf" type="static_transform_publisher" name="virtual_tool_broadcaster" args="0 0.06 -0.06 0 0 0 end_effector_marker grasp_tool 100" />
+<node pkg="tf" type="static_transform_publisher" name="virtual_tool_broadcaster" args="0 0.069 -0.06 0 0 0 end_effector_marker grasp_tool 100" />
 </launch>

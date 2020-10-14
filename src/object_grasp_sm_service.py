@@ -31,7 +31,6 @@ class ObjectGraspSM:
                                         Trigger,
                                         self.run_sm)
 
-
     def run_sm(self, request):
         if self.running_sm:
             response = TriggerResponse()
@@ -122,12 +121,8 @@ class ObjectGraspSM:
         response.success = (outcome == 'OVERALL_SUCCESS')
         return response
 
-
 if __name__ == '__main__':
     rospy.init_node('object_grasp_sm', anonymous=False)
-
-    object_grasp_sm = ObjectGraspSM()
     mbot(enabled_components=['perception', 'hri'])
-    rospy.sleep(1.0)
-
+    object_grasp_sm = ObjectGraspSM()
     rospy.spin()

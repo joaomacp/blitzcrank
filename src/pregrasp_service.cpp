@@ -224,7 +224,7 @@ geometry_msgs::Pose get_pregrasp_pose(geometry_msgs::TransformStamped targetTran
 
     // Modify pregrasp pose based on bounding box (vertical vs horizontal)
     tf2::Quaternion eef_quat;
-    if(bounding_box.height > bounding_box.width*1.3) {
+    if(bounding_box.height > bounding_box.width*1.2) {
       ROS_INFO("Vertical bounding box: pregrasp pose with flat hand");
 
       eef_quat.setRPY(M_PI/2, 0, YAW_ANGLE + (M_PI/2));
