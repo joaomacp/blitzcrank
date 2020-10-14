@@ -11,7 +11,7 @@ from std_srvs.srv import Trigger, TriggerResponse
 
 import mbot_states.perception_states as percep_states
 import mbot_states.hri_states as hri_states
-import object_grasp_states as grasping_states
+import mbot_states.kinova_manipulation_states as manip_states
 
 # mbot robot class
 from mbot_robot_class_ros import mbot as mbot_class
@@ -56,13 +56,13 @@ class ObjectGraspSM:
                 transitions={'success': 'CLEAR_OCTOMAP',
                                 'failure': 'CLEAR_OCTOMAP'})
             # Clear octomap voxels
-            sm.add('CLEAR_OCTOMAP', grasping_states.ClearOctomap(),
+            sm.add('CLEAR_OCTOMAP', manip_states.ClearOctomap(),
                     transitions={'success': 'ADD_COLLISION_OBJECTS'})
 
             # Add MoveIt collision objects
-            sm.add('ADD_COLLISION_OBJECTS', grasping_states.AddCollisionObjectsState(),
+            sm.add('ADD_COLLISION_OBJECTS', manip_states.AddCollisionObjectsState(),
                     transitions={'success': 'HEAD_LEFT',
-                                'failure': 'HEAD_LEFT'})
+                                'failure': 'OVERALL_FAILURE'})
 
             # Move head side to side to build octomap
             sm.add('HEAD_LEFT', hri_states.MoveHeadNew(40, 40, True),
@@ -73,39 +73,40 @@ class ObjectGraspSM:
                 transitions={'success': 'HEAD_OBJECT',
                                 'failure': 'HEAD_OBJECT'})   
 
-            sm.add('HEAD_OBJECT', grasping_states.MoveHeadObject(self.listener, self.target_frame),
-                transitions={'success': 'PREGRASP'})
+            sm.add('HEAD_OBJECT', manip_states.MoveHeadObject(self.target_frame),
+                transitions={'success': 'PREGRASP',
+                             'failure': 'OVERALL_FAILURE'})
 
-            sm.add('PREGRASP', grasping_states.Pregrasp(),
+            sm.add('PREGRASP', manip_states.Pregrasp(),
                 transitions={'success': 'VISUAL_SERVO',
                                 'failure': 'OVERALL_FAILURE'})
 
-            sm.add('VISUAL_SERVO', grasping_states.VisualServo(),
+            sm.add('VISUAL_SERVO', manip_states.VisualServo(),
                 transitions={'success': 'CLOSE_GRIPPER',
                                 'failure': 'OVERALL_FAILURE'})
 
-            sm.add('CLOSE_GRIPPER', grasping_states.CloseGripper(),
+            sm.add('CLOSE_GRIPPER', manip_states.CloseGripper(),
                     transitions={'success': 'LIFT_ARM'})
 
-            sm.add('LIFT_ARM', grasping_states.MoveEefRelative(z=0.05),
+            sm.add('LIFT_ARM', manip_states.MoveEefRelative(z=0.05),
                     transitions={'success': 'MOVE_ARM_TO_GOAL',
                                 'failure': 'OVERALL_FAILURE'})
 
             # Randomizing goal position: either 8cm to the left or to the right, randomly
             y_delta = 0.03 if random.random() < 0.5 else -0.03
-            sm.add('MOVE_ARM_TO_GOAL', grasping_states.MoveEefRelative(y=y_delta),
+            sm.add('MOVE_ARM_TO_GOAL', manip_states.MoveEefRelative(y=y_delta),
                     transitions={'success': 'LOWER_ARM',
                                 'failure': 'OVERALL_FAILURE'})
 
-            sm.add('LOWER_ARM', grasping_states.MoveEefRelative(x=0, y=0, z=-0.05),
+            sm.add('LOWER_ARM', manip_states.MoveEefRelative(x=0, y=0, z=-0.05),
                     transitions={'success': 'OPEN_GRIPPER',
                                 'failure': 'OVERALL_FAILURE'})
 
 
-            sm.add('OPEN_GRIPPER', grasping_states.OpenGripper(),
+            sm.add('OPEN_GRIPPER', manip_states.OpenGripper(),
                     transitions={'success': 'REST_ARM'})
 
-            sm.add('REST_ARM', grasping_states.SetArmResting(),
+            sm.add('REST_ARM', manip_states.SetArmResting(),
                     transitions={'success': 'OVERALL_SUCCESS',
                                 'failure': 'OVERALL_FAILURE'})
 
@@ -123,6 +124,6 @@ class ObjectGraspSM:
 
 if __name__ == '__main__':
     rospy.init_node('object_grasp_sm', anonymous=False)
-    mbot(enabled_components=['perception', 'hri'])
+    mbot(enabled_components=['perception', 'hri', 'kinova_manipulation'])
     object_grasp_sm = ObjectGraspSM()
     rospy.spin()
