@@ -5,7 +5,7 @@
   <arg name="target_tracking" default="false" />
 
   <remap from="/joint_states" to="/kinova_driver/out/joint_state" />
-  <node pkg="blitzcrank" type="visual_servoing" name="visual_servoing" output="screen">
+  <node pkg="kinova_manipulation" type="visual_servoing" name="visual_servoing" output="screen">
     <param name="target_frame" value="$(arg target_frame)" />
     <param name="target_tracking" value="$(arg target_tracking)" />
     <param name="visual_servoing_speed_cap" value="2" />
@@ -13,7 +13,7 @@
     <param name="visual_servoing_stopping_distance" value="0.025" />
   </node>
 
-  <node pkg="blitzcrank" type="joint_control" name="mbot_kinova_joint_control" output="screen">
+  <node pkg="kinova_manipulation" type="joint_control" name="mbot_kinova_joint_control" output="screen">
     <param name="gazebo" value="$(arg gazebo)" />
     <param name="debug" value="$(arg debug)" />
   </node>

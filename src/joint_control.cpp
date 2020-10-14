@@ -1,5 +1,5 @@
 /*
-  This node subscribes to /blitzcrank/apply_eef_velocity, transforms the end-effector velocity into a
+  This node subscribes to /kinova_manipulation/apply_eef_velocity, transforms the end-effector velocity into a
   vector of joint velocities (using the Jacobian pseudoinverse and SVD), and applies the velocities to the arm.
   This is necessary because Kinova drivers don't handle cartesian end-effector velocities well.
 
@@ -137,7 +137,7 @@ int main(int argc, char** argv){
   move_group->startStateMonitor();
 
   // Create publishers and subscribers
-  ros::Subscriber vel_sub = nh.subscribe("/blitzcrank/apply_eef_velocity", 1, applyEndEffectorVelocity);
+  ros::Subscriber vel_sub = nh.subscribe("/kinova_manipulation/apply_eef_velocity", 1, applyEndEffectorVelocity);
 
   traj_pub = nh.advertise<trajectory_msgs::JointTrajectory>("/j2s6s300/effort_joint_trajectory_controller/command", 1000);
 

@@ -20,7 +20,7 @@
 #include <sensor_msgs/RegionOfInterest.h>
 
 #include <std_srvs/Trigger.h>
-#include <blitzcrank/AddCollisionObjects.h>
+#include <kinova_manipulation/AddCollisionObjects.h>
 
 const double APPROACH_DISTANCE = 0.08;
 
@@ -36,7 +36,7 @@ ros::ServiceClient getPlanningSceneClient;
 
 bool target_tracking;
 
-bool add_collision_objects(blitzcrank::AddCollisionObjects::Request &req, blitzcrank::AddCollisionObjects::Response &res) {
+bool add_collision_objects(kinova_manipulation::AddCollisionObjects::Request &req, kinova_manipulation::AddCollisionObjects::Response &res) {
   moveit::planning_interface::PlanningSceneInterface planning_scene_interface;
 
   // Ground plane

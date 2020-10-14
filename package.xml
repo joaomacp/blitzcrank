@@ -1,8 +1,8 @@
 <?xml version="1.0"?>
 <package format="2">
-  <name>blitzcrank</name>
+  <name>kinova_manipulation</name>
   <version>0.1.0</version>
-  <description>The blitzcrank package</description>
+  <description>The kinova_manipulation package</description>
 
   <maintainer email="95joaopereira@gmail.com">Joao Pereira</maintainer>
 

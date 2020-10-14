@@ -5,7 +5,7 @@
     <arg name="arm_name" default="kinova" />
 
     <remap from="/joint_states" to="/$(arg arm_name)/joint_states" />
-    <node pkg="blitzcrank" type="pregrasp_service" name="pregrasp_service" output="screen">
+    <node pkg="kinova_manipulation" type="pregrasp_service" name="pregrasp_service" output="screen">
         <param name="root_frame" value="$(arg root_frame)" />
         <param name="target_frame" value="$(arg target_frame)" />
         <param name="target_tracking" value="$(arg target_tracking)" />

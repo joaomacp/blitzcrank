@@ -7,7 +7,7 @@ import smach
 import tf
 
 from std_srvs.srv import Trigger, Empty
-from blitzcrank.srv import AddCollisionObjects
+from kinova_manipulation.srv import AddCollisionObjects
 
 # mbot robot class
 from mbot_robot_class_ros import mbot as mbot_class

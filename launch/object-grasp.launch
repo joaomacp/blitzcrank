@@ -14,7 +14,7 @@
             <arg name="launch_specific" value="false"/>
         </include>
 
-        <node pkg="blitzcrank" type="object_localizer_republish" name="object_localizer_republish" />
+        <node pkg="kinova_manipulation" type="object_localizer_republish" name="object_localizer_republish" />
     </group>
     <group unless="$(arg use_localizer)">
         <arg name="target_frame" value="target_marker" if="$(arg target_tracking)" />
@@ -22,16 +22,16 @@
     </group>
     
     <include file="$(find mbot_kinova_arm_moveit)/launch/kinova_demo.launch" />
-    <include file="$(find blitzcrank)/launch/ar-track.launch" />
+    <include file="$(find kinova_manipulation)/launch/ar-track.launch" />
 
-    <include file="$(find blitzcrank)/launch/pregrasp-service.launch">
+    <include file="$(find kinova_manipulation)/launch/pregrasp-service.launch">
         <arg name="target_frame" value="localized_object" if="$(arg use_localizer)" />
         <arg name="target_frame" value="target_marker" unless="$(arg use_localizer)" />
 
         <arg name="target_tracking" value="$(arg target_tracking)" />
     </include>
 
-    <include file="$(find blitzcrank)/launch/visual-servoing.launch">
+    <include file="$(find kinova_manipulation)/launch/visual-servoing.launch">
         <arg name="gazebo" value="$(arg gazebo)" />
 
         <arg name="target_frame" value="grasp_target" unless="$(arg target_tracking)" />
