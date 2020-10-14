@@ -41,4 +41,6 @@
 
         <arg name="target_tracking" value="$(arg target_tracking)" />
     </include>
+
+    <node pkg="kinova_manipulation" name="object_grasp_sm_service" type="object_grasp_sm_service.py" />
 </launch>
